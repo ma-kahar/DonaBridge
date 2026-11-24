@@ -56,6 +56,7 @@ fn main() {
             "wa_avatar",
             "wa_chat_context",
             "wa_shortcut",
+            "wa_auto_read",
         ]),
     ))
     .expect("failed to run tauri-build");

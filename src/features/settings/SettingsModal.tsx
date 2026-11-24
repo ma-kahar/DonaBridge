@@ -1,16 +1,13 @@
 import {
   CheckCircle2,
-  Download,
   Globe,
   KeyRound,
-  Moon,
   Pencil,
   Plus,
   RefreshCw,
   Server,
   ShieldCheck,
   Trash2,
-  Upload,
   Users,
   X,
 } from "lucide-react";
@@ -24,17 +21,13 @@ import {
   aiListProfiles,
   aiSetActiveProfile,
   aiUpsertProfile,
-  backupEncrypted,
-  clearDndSchedule,
   mcpRotateToken,
   mcpStart,
   mcpStatus,
   mcpStop,
-  restoreEncrypted,
   securityClearPin,
   securityLockStatus,
   securitySetPin,
-  setDndSchedule,
 } from "../../lib/ipc";
 import { type Account, useAppStore } from "../../store";
 
@@ -500,13 +493,12 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
                   </form>
                 )}
 
-                {/* Backup & Restore */}
+                {/* Backup & Restore - Planned for v1.1 */}
                 <div className="border-t border-dona-border pt-4 space-y-3">
-                  <p className="text-xs font-semibold text-white">Encrypted Backup</p>
+                  <p className="text-xs font-semibold text-white">Encrypted Backup (Coming in v1.1)</p>
                   <p className="text-[11px] text-gray-400">
-                    Export all app data as a password-protected backup file (.age).
+                    Export all app data as a password-protected backup file will be available in the next release.
                   </p>
-                  <BackupRestorePanel />
                 </div>
               </div>
             )}

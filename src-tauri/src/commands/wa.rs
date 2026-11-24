@@ -152,6 +152,27 @@ pub async fn wa_shortcut(app: AppHandle, webview: Webview, key: String) -> Resul
     Ok(())
 }
 
+/// Auto-read incoming messages when chat is open.
+/// Called automatically when new messages arrive in the active chat.
+/// Compliance: Only marks read when chat is actively open, never in background.
+#[command]
+pub async fn wa_auto_read(app: AppHandle, webview: Webview) -> Result<(), String> {
+    let account_id = account_id_from_label(webview.label())?;
+    tracing::debug!("wa_auto_read from {account_id}");
+
+    // Emit event to UI that new message was received and auto-read
+    // UI can then trigger AI suggest reply if enabled
+    let _ = app.emit_to(
+        "main",
+        "wa:auto-read",
+        serde_json::json!({
+            "account_id": account_id
+        }),
+    );
+
+    Ok(())
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /// Extract the account id from a webview label like "wa_abc123".

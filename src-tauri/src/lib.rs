@@ -102,6 +102,7 @@ pub fn run() {
             commands::wa::wa_avatar,
             commands::wa::wa_chat_context,
             commands::wa::wa_shortcut,
+            commands::wa::wa_auto_read,
             commands::wa_extra::fetch_link_preview,
             commands::wa_extra::set_dnd_schedule,
             commands::wa_extra::clear_dnd_schedule,

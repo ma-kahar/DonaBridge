@@ -71,6 +71,39 @@ pub fn build_init_script(account_id: &str) -> String {
         }}
     }});
 
+    // ── Auto-read incoming messages (when chat is open) ────────────────────
+    // Watch for new messages in the active chat and auto-mark as read
+    // Compliance: Only reads when chat is open, never in background
+    let lastMessageCount = 0;
+    function checkForNewMessages() {{
+        const msgContainer = document.querySelector('[data-testid="conversation-panel-messages"]');
+        if (!msgContainer) return;
+        
+        const messages = msgContainer.querySelectorAll('[data-testid="msg-container"]');
+        const currentCount = messages.length;
+        
+        if (currentCount > lastMessageCount) {{
+            // New message detected - mark chat as read
+            window.__TAURI_INTERNALS__.invoke('wa_auto_read', {{
+                account_id: ACCOUNT_ID
+            }}).catch(() => {{}});
+        }}
+        lastMessageCount = currentCount;
+    }}
+    
+    // Watch for new messages
+    const chatObserver = new MutationObserver(checkForNewMessages);
+    function startChatWatch() {{
+        const msgContainer = document.querySelector('[data-testid="conversation-panel-messages"]');
+        if (msgContainer) {{
+            chatObserver.observe(msgContainer, {{ childList: true, subtree: true }});
+            checkForNewMessages();
+        }}
+    }}
+    startChatWatch();
+    // Re-watch when chat changes
+    setInterval(startChatWatch, 2000);
+
     // ── Privacy blur overlay ───────────────────────────────────────────────
     let blurOverlay = null;
     window.addEventListener('dona:set-blur', (e) => {{

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schemas.tauri.app/capability/1",
   "identifier": "wa-remote",
-  "description": "Capabilities for WhatsApp webviews (wa_*). Report-only — 5 commands only. Blueprint §3 #2, §8.",
+  "description": "Capabilities for WhatsApp webviews (wa_*). Report-only — 6 commands. Auto-read when chat is open.",
   "webviews": ["wa_*"],
   "remote": {
     "urls": ["https://web.whatsapp.com/*"]
@@ -12,6 +12,7 @@
     "allow-wa-unread",
     "allow-wa-avatar",
     "allow-wa-chat-context",
-    "allow-wa-shortcut"
+    "allow-wa-shortcut",
+    "allow-wa-auto-read"
   ]
 }
