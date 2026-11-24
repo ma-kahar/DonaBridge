@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-remove-tag"
+description = "Enables the crm_remove_tag command without any pre-configured scope."
+commands.allow = ["crm_remove_tag"]
+
+[[permission]]
+identifier = "deny-crm-remove-tag"
+description = "Denies the crm_remove_tag command without any pre-configured scope."
+commands.deny = ["crm_remove_tag"]

@@ -1,0 +1,32 @@
+# deny.toml — cargo-deny configuration
+# Checks licences, security advisories, and duplicate dependencies.
+
+[advisories]
+ignore = []
+
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "ISC",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+    "MPL-2.0",
+]
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "warn"
+deny = [
+    # Never use unofficial WhatsApp libraries (Blueprint §2)
+    { name = "baileys" },
+    { name = "whatsapp-web" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "warn"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

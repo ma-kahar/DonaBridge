@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-security-unlock-hello"
+description = "Enables the security_unlock_hello command without any pre-configured scope."
+commands.allow = ["security_unlock_hello"]
+
+[[permission]]
+identifier = "deny-security-unlock-hello"
+description = "Denies the security_unlock_hello command without any pre-configured scope."
+commands.deny = ["security_unlock_hello"]

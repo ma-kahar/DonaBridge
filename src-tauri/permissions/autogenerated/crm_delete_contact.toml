@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-delete-contact"
+description = "Enables the crm_delete_contact command without any pre-configured scope."
+commands.allow = ["crm_delete_contact"]
+
+[[permission]]
+identifier = "deny-crm-delete-contact"
+description = "Denies the crm_delete_contact command without any pre-configured scope."
+commands.deny = ["crm_delete_contact"]

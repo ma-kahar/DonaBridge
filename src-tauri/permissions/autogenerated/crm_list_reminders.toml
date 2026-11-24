@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-list-reminders"
+description = "Enables the crm_list_reminders command without any pre-configured scope."
+commands.allow = ["crm_list_reminders"]
+
+[[permission]]
+identifier = "deny-crm-list-reminders"
+description = "Denies the crm_list_reminders command without any pre-configured scope."
+commands.deny = ["crm_list_reminders"]

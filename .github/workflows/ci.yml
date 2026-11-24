@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  commit-hygiene:
+    name: Commit & PR Hygiene (No AI Attribution)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check commit messages for AI attribution
+        run: |
+          if git log --format=%B -n 20 | grep -iE "(^co-authored-by:.*(claude|anthropic|copilot|cursor|gemini|openai|chatgpt|codex)|generated (with|by) .*(claude|copilot|cursor|gemini|chatgpt|codex|ai)|^claude-session:)"; then
+            echo "ERROR: AI attribution found in commit history!"
+            exit 1
+          fi
+
+  compliance-guard:
+    name: WhatsApp Compliance Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for forbidden patterns
+        run: |
+          if grep -rnE "baileys|whatsapp-web\.js|send_message|KeyboardEvent.*Enter" crates/ src-tauri/src/ src/; then
+            echo "ERROR: Forbidden WhatsApp automation pattern detected!"
+            exit 1
+          fi
+
+  build-and-test:
+    name: Build, Lint & Test (Windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Frontend lint, typecheck, test, build
+        run: |
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+          pnpm build
+
+      - name: Rust fmt, clippy, test
+        run: |
+          cargo fmt --check
+          cargo clippy --workspace -- -D warnings
+          cargo test --workspace

@@ -1,0 +1,105 @@
+# Dona Bridge - Production .gitignore
+
+# ============================================
+# AI Tools & Documentation (NEVER COMMIT)
+# ============================================
+.claude/
+.cursor/
+.cursorrules
+.gemini/
+.windsurfrules
+CLAUDE.md
+AGENTS.md
+*BLUEPRINT*.md
+*blueprint*.md
+*ANALYSIS*.md
+*analysis*.md
+*HISTORY*.md
+*history*.md
+docs/BLUEPRINT.md
+docs/DECISIONS.md
+PROJECT_*.md
+
+# ============================================
+# Build Artifacts
+# ============================================
+target/
+dist/
+out/
+build/
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+
+# ============================================
+# Dependencies
+# ============================================
+node_modules/
+.pnpm-store/
+pnpm-lock.yaml
+
+# ============================================
+# IDE & Editors
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Rust
+# ============================================
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# ============================================
+# Environment & Secrets
+# ============================================
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# ============================================
+# Logs & Temp
+# ============================================
+*.log
+logs/
+*.tmp
+*.temp
+.cache/
+
+# ============================================
+# OS Specific
+# ============================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ============================================
+# Testing
+# ============================================
+coverage/
+.nyc_output/
+*.lcov
+
+# Keep these files
+!.gitignore
+!README.md
+!LICENSE
+!CHANGELOG.md
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
+!SECURITY.md
+!PRIVACY.md

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-list-tags"
+description = "Enables the crm_list_tags command without any pre-configured scope."
+commands.allow = ["crm_list_tags"]
+
+[[permission]]
+identifier = "deny-crm-list-tags"
+description = "Denies the crm_list_tags command without any pre-configured scope."
+commands.deny = ["crm_list_tags"]

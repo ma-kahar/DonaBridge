@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-add-note"
+description = "Enables the crm_add_note command without any pre-configured scope."
+commands.allow = ["crm_add_note"]
+
+[[permission]]
+identifier = "deny-crm-add-note"
+description = "Denies the crm_add_note command without any pre-configured scope."
+commands.deny = ["crm_add_note"]

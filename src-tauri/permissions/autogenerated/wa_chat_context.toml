@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-wa-chat-context"
+description = "Enables the wa_chat_context command without any pre-configured scope."
+commands.allow = ["wa_chat_context"]
+
+[[permission]]
+identifier = "deny-wa-chat-context"
+description = "Denies the wa_chat_context command without any pre-configured scope."
+commands.deny = ["wa_chat_context"]

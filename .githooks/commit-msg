@@ -1,0 +1,19 @@
+#!/bin/sh
+# Strip AI attribution from commit messages
+
+# Remove Co-Authored-By lines mentioning AI tools
+sed -i '/^Co-Authored-By:.*[Cc]laude/d' "$1"
+sed -i '/^Co-Authored-By:.*[Aa]nthropic/d' "$1"
+sed-i '/^Co-Authored-By:.*[Cc]opilot/d' "$1"
+sed -i '/^Co-Authored-By:.*[Cc]ursor/d' "$1"
+sed -i '/^Co-Authored-By:.*[Gg]emini/d' "$1"
+sed -i '/^Co-Authored-By:.*[Cc]hatGPT/d' "$1"
+sed -i '/^Co-Authored-By:.*OpenAI/d' "$1"
+
+# Remove "Generated with/by" lines
+sed -i '/^Generated (with|by)/d' "$1"
+
+# Remove claude-session links
+sed -i '/^claude-session:/d' "$1"
+
+exit 0

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-security-clear-pin"
+description = "Enables the security_clear_pin command without any pre-configured scope."
+commands.allow = ["security_clear_pin"]
+
+[[permission]]
+identifier = "deny-security-clear-pin"
+description = "Denies the security_clear_pin command without any pre-configured scope."
+commands.deny = ["security_clear_pin"]

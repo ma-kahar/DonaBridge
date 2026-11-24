@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-set-drawer-open"
+description = "Enables the crm_set_drawer_open command without any pre-configured scope."
+commands.allow = ["crm_set_drawer_open"]
+
+[[permission]]
+identifier = "deny-crm-set-drawer-open"
+description = "Denies the crm_set_drawer_open command without any pre-configured scope."
+commands.deny = ["crm_set_drawer_open"]

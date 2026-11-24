@@ -1,0 +1,90 @@
+[package]
+name = "dona-bridge"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Dona Bridge — multi-account WhatsApp Web desktop app with CRM and AI Copilot"
+
+[lib]
+name = "dona_bridge_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "dona-bridge"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+[dependencies]
+# Tauri core
+tauri = { workspace = true }
+tauri-plugin-notification = { workspace = true }
+tauri-plugin-single-instance = { workspace = true }
+tauri-plugin-autostart = { workspace = true }
+tauri-plugin-window-state = { workspace = true }
+tauri-plugin-updater = { workspace = true }
+tauri-plugin-deep-link = { workspace = true }
+tauri-plugin-dialog = { workspace = true }
+tauri-plugin-opener = { workspace = true }
+tauri-plugin-log = { workspace = true }
+
+# Domain logic
+dona-core = { path = "../crates/dona-core" }
+
+# MCP server
+rmcp = { workspace = true }
+
+# AI
+reqwest = { workspace = true }
+tokio = { workspace = true }
+
+# Secrets
+keyring = { workspace = true }
+
+# App Lock
+argon2 = { workspace = true }
+
+# IPC typing
+specta = { workspace = true }
+tauri-specta = { workspace = true }
+
+# Errors / Logging
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+parking_lot = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Windows extras
+sysinfo = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+
+# Backups (Phase 2)
+# age = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.39"
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_Com",
+    "Win32_Security_Credentials",
+    "Win32_System_WinRT",
+    "Foundation",
+    "Security_Credentials_UI",
+] }
+
+# Profile is in workspace Cargo.toml (must be at workspace root)

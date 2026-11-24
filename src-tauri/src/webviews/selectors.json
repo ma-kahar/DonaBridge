@@ -1,0 +1,12 @@
+{
+  "_comment": "DOM selectors for WhatsApp Web. ALL selector changes go here — nowhere else.",
+  "_version": "1.1.0",
+  "_whatsapp_web_last_tested": "2026-11-24",
+  "unread_badge": "span[data-testid='icon-unread-count'], span[aria-label*='unread']",
+  "chat_title": "#main header span[dir='auto'][title], #main header [data-testid='conversation-info-header-chat-title'], header [data-testid='conversation-header'] span[dir='auto'], #main header span[dir='auto']",
+  "message_input": "#main footer div[contenteditable='true'][role='textbox'], div[data-testid='conversation-compose-box-input'], footer div[contenteditable='true']",
+  "message_list": "#main div[role='application'], div[data-testid='msg-container']",
+  "message_item": "#main div.message-in, #main div.message-out, #main div[data-id], div.message-in, div.message-out",
+  "message_text": "span.selectable-text, span[data-testid='selectable-text'], span[dir='ltr'], span[dir='auto']",
+  "own_avatar": "header img[draggable='false'], img[data-testid='default-user']"
+}

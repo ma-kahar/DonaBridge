@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-security-unlock-pin"
+description = "Enables the security_unlock_pin command without any pre-configured scope."
+commands.allow = ["security_unlock_pin"]
+
+[[permission]]
+identifier = "deny-security-unlock-pin"
+description = "Denies the security_unlock_pin command without any pre-configured scope."
+commands.deny = ["security_unlock_pin"]

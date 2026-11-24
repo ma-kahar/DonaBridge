@@ -1,0 +1,23 @@
+[package]
+name = "dona-mcp-bridge"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Dona Bridge MCP stdio bridge — connects stdio MCP clients to the running app"
+
+[[bin]]
+name = "dona-bridge-mcp"
+path = "src/main.rs"
+
+[dependencies]
+rmcp = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }

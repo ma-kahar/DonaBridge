@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-import-csv"
+description = "Enables the crm_import_csv command without any pre-configured scope."
+commands.allow = ["crm_import_csv"]
+
+[[permission]]
+identifier = "deny-crm-import-csv"
+description = "Denies the crm_import_csv command without any pre-configured scope."
+commands.deny = ["crm_import_csv"]

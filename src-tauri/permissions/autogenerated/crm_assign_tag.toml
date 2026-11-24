@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-assign-tag"
+description = "Enables the crm_assign_tag command without any pre-configured scope."
+commands.allow = ["crm_assign_tag"]
+
+[[permission]]
+identifier = "deny-crm-assign-tag"
+description = "Denies the crm_assign_tag command without any pre-configured scope."
+commands.deny = ["crm_assign_tag"]

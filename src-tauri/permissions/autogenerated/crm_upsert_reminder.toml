@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-upsert-reminder"
+description = "Enables the crm_upsert_reminder command without any pre-configured scope."
+commands.allow = ["crm_upsert_reminder"]
+
+[[permission]]
+identifier = "deny-crm-upsert-reminder"
+description = "Denies the crm_upsert_reminder command without any pre-configured scope."
+commands.deny = ["crm_upsert_reminder"]

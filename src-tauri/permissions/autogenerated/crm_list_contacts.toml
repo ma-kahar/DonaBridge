@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-list-contacts"
+description = "Enables the crm_list_contacts command without any pre-configured scope."
+commands.allow = ["crm_list_contacts"]
+
+[[permission]]
+identifier = "deny-crm-list-contacts"
+description = "Denies the crm_list_contacts command without any pre-configured scope."
+commands.deny = ["crm_list_contacts"]

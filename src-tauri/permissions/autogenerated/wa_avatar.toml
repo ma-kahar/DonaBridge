@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-wa-avatar"
+description = "Enables the wa_avatar command without any pre-configured scope."
+commands.allow = ["wa_avatar"]
+
+[[permission]]
+identifier = "deny-wa-avatar"
+description = "Denies the wa_avatar command without any pre-configured scope."
+commands.deny = ["wa_avatar"]

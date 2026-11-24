@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-insert-draft"
+description = "Enables the crm_insert_draft command without any pre-configured scope."
+commands.allow = ["crm_insert_draft"]
+
+[[permission]]
+identifier = "deny-crm-insert-draft"
+description = "Denies the crm_insert_draft command without any pre-configured scope."
+commands.deny = ["crm_insert_draft"]

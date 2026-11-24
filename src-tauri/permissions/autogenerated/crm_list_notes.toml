@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-list-notes"
+description = "Enables the crm_list_notes command without any pre-configured scope."
+commands.allow = ["crm_list_notes"]
+
+[[permission]]
+identifier = "deny-crm-list-notes"
+description = "Denies the crm_list_notes command without any pre-configured scope."
+commands.deny = ["crm_list_notes"]

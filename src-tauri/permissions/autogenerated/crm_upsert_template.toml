@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-upsert-template"
+description = "Enables the crm_upsert_template command without any pre-configured scope."
+commands.allow = ["crm_upsert_template"]
+
+[[permission]]
+identifier = "deny-crm-upsert-template"
+description = "Denies the crm_upsert_template command without any pre-configured scope."
+commands.deny = ["crm_upsert_template"]

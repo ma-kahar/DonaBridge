@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-security-lock-status"
+description = "Enables the security_lock_status command without any pre-configured scope."
+commands.allow = ["security_lock_status"]
+
+[[permission]]
+identifier = "deny-security-lock-status"
+description = "Denies the security_lock_status command without any pre-configured scope."
+commands.deny = ["security_lock_status"]
