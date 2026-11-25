@@ -52,6 +52,12 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
   Today/Upcoming/Overdue views and desktop notifications; pipeline reports
   (open/won value, win rate, average deal, overdue tasks); and a Do-Not-Contact
   warning before opening a chat or inserting a draft.
+- **Bottom CRM navigation**: the CRM sections now sit in an icon + text bar at
+  the bottom of the drawer (3×3 grid) and across the bottom in full-screen mode.
+- **Auto-read the open chat (opt-in)**: when a new message arrives in the chat
+  you already have open, Dona Bridge reloads its last 20 messages so the Copilot
+  can prepare a draft. It never reads background chats, never marks messages as
+  read and never sends anything.
 - Session health reporting: the account dock shows an amber dot when WhatsApp
   has logged the device out, so it is clear that a QR re-scan is needed.
 - **Encrypted, portable backups** (Settings → Data): AES-256-GCM with an

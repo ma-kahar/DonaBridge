@@ -24,6 +24,9 @@ export default function CopilotPanel({ accountId, chatContext }: CopilotPanelPro
   const [error, setError] = useState<string | null>(null);
   const [needsConsent, setNeedsConsent] = useState(false);
   const [autoMode, setAutoMode] = useState(false);
+  const [autoRead, setAutoRead] = useState(
+    () => typeof localStorage !== "undefined" && localStorage.getItem("dona_auto_read_open_chat") === "1"
+  );
   const prevContactRef = useRef<string | null>(null);
   const prevMsgCountRef = useRef<number>(0);
 
@@ -31,6 +34,9 @@ export default function CopilotPanel({ accountId, chatContext }: CopilotPanelPro
   useEffect(() => {
     if (!autoMode || !chatContext || loading) return;
     const { contact, messages } = chatContext;
+    // Never draft a reply to your own message.
+    const last = messages[messages.length - 1] ?? "";
+    if (/^Me:/i.test(last)) return;
     const isNewContact = contact !== prevContactRef.current;
     const hasNewMessages = messages.length > prevMsgCountRef.current;
     if (isNewContact || hasNewMessages) {
@@ -38,7 +44,13 @@ export default function CopilotPanel({ accountId, chatContext }: CopilotPanelPro
       prevMsgCountRef.current = messages.length;
       void handleSuggestInternal(contact, messages);
     }
-  }, [chatContext, autoMode]);
+  }, [chatContext, autoMode, loading]);
+
+  function toggleAutoRead() {
+    const next = !autoRead;
+    setAutoRead(next);
+    localStorage.setItem("dona_auto_read_open_chat", next ? "1" : "0");
+  }
 
   async function handleReadChat() {
     setError(null);
@@ -101,20 +113,42 @@ export default function CopilotPanel({ accountId, chatContext }: CopilotPanelPro
           type="button"
           onClick={() => setAutoMode((v) => !v)}
           title={autoMode ? "Auto-suggest ON (click to disable)" : "Enable auto-suggest on new messages"}
-          className={`px-3 py-2 rounded-lg border text-xs flex items-center gap-1 transition-colors ${
+          className={`px-2.5 py-2 rounded-lg border text-xs flex items-center gap-1 transition-colors ${
             autoMode
               ? "bg-blue-600 border-blue-500 text-white"
               : "bg-dona-panel border-dona-border text-gray-400 hover:text-white"
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
-          Auto
+        </button>
+        <button
+          type="button"
+          onClick={toggleAutoRead}
+          title={
+            autoRead
+              ? "Auto-read is ON: the open chat reloads when a new message arrives"
+              : "Auto-read the open chat when a new message arrives"
+          }
+          className={`px-2.5 py-2 rounded-lg border text-xs flex items-center gap-1 transition-colors ${
+            autoRead
+              ? "bg-emerald-600 border-emerald-500 text-white"
+              : "bg-dona-panel border-dona-border text-gray-400 hover:text-white"
+          }`}
+        >
+          <Eye className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {autoMode && (
         <p className="text-[11px] text-blue-300 bg-blue-950/40 border border-blue-800/50 rounded px-2 py-1">
           ⚡ Auto-suggest is ON — a reply draft will be generated automatically when new messages arrive.
+        </p>
+      )}
+
+      {autoRead && (
+        <p className="text-[11px] text-emerald-300 bg-emerald-950/30 border border-emerald-800/50 rounded px-2 py-1">
+          👁 Auto-read is ON — the chat you already have open is reloaded when a new message
+          arrives. Background chats are never read, and nothing is sent.
         </p>
       )}
 
@@ -128,8 +162,8 @@ export default function CopilotPanel({ accountId, chatContext }: CopilotPanelPro
           </p>
           {/* Last 3 messages preview */}
           <div className="space-y-1">
-            {chatContext.messages.slice(-3).map((m, i) => (
-              <div key={i} className="text-[11px] text-gray-300 bg-black/20 rounded px-2 py-1 truncate">
+            {chatContext.messages.slice(-3).map((m) => (
+              <div key={m} className="text-[11px] text-gray-300 bg-black/20 rounded px-2 py-1 truncate">
                 {m}
               </div>
             ))}

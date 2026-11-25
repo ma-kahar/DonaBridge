@@ -67,6 +67,7 @@ Open the CRM drawer from the sidebar — or click the **Expand (`⛶`)** button 
 ### 3. Draft-Only AI Copilot (Optional)
 - Supports **Ollama** (100% offline/local) as well as **OpenAI**, **Anthropic**, **DeepSeek**, **Kimi**, **OpenRouter**, or any custom OpenAI-compatible API.
 - **Strict Draft-Only Policy:** AI suggestions only insert text into the WhatsApp message box — **Dona Bridge never automatically sends messages or clicks Send.**
+- **Auto-read the open chat (opt-in):** with the eye toggle enabled in the Copilot tab, a new message in the chat you already have open reloads its last 20 messages so a draft can be prepared. It never reads a background chat, never changes read receipts, and never sends.
 
 ### 4. Themes & Languages
 - Toggle between **Dark Mode** and **Light Mode** anytime from the CRM header (`☀️` / `🌙`).

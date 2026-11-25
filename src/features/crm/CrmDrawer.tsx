@@ -415,14 +415,12 @@ export default function CrmDrawer({
 
   return (
     <aside
-      className={`${widthClass} shrink-0 h-full bg-dona-dark ${
-        expanded
-          ? "grid grid-cols-[13rem_1fr] grid-rows-[auto_1fr]"
-          : "flex flex-col border-l border-dona-border transition-all duration-200"
+      className={`${widthClass} shrink-0 h-full bg-dona-dark flex flex-col ${
+        expanded ? "" : "border-l border-dona-border transition-all duration-200"
       }`}
     >
       {/* ── Header ── */}
-      <div className="col-span-2 flex items-center justify-between gap-3 px-4 py-3 border-b border-dona-border shrink-0">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-dona-border shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <h2 className="font-semibold text-white text-sm whitespace-nowrap">
             {expanded ? "Dona CRM" : t("crm.title")}
@@ -463,58 +461,9 @@ export default function CrmDrawer({
           </button>
         </div>
       </div>
-
-      {/* ── Navigation ── */}
-      {expanded ? (
-        <nav className="row-start-2 col-start-1 border-r border-dona-border p-2.5 space-y-4 overflow-y-auto min-h-0">
-          {(["Workspace", "Library", "Insights"] as NavSection[]).map((section) => (
-            <div key={section} className="space-y-1">
-              <p className="px-2 text-[9px] font-semibold uppercase tracking-wider text-gray-500">
-                {section}
-              </p>
-              {navItems
-                .filter((item) => item.section === section)
-                .map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => selectTab(item.id)}
-                    className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${
-                      tab === item.id
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-300 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    {item.icon}
-                    <span className="truncate">{item.label}</span>
-                  </button>
-                ))}
-            </div>
-          ))}
-        </nav>
-      ) : (
-        <nav className="grid grid-cols-3 gap-1 p-2 border-b border-dona-border shrink-0">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => selectTab(item.id)}
-              className={`flex flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[9px] leading-tight transition-colors ${
-                tab === item.id
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-400 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              {item.icon}
-              <span className="truncate max-w-full">{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      )}
-
       {/* ── Content ── */}
       <div
-        className={`${expanded ? "row-start-2 col-start-2" : "flex-1"} min-h-0 overflow-y-auto space-y-3 ${
+        className={`flex-1 min-h-0 overflow-y-auto space-y-3 ${
           expanded ? "p-4 xl:p-6" : "p-3"
         }`}
       >
@@ -1186,6 +1135,34 @@ export default function CrmDrawer({
           </>
         )}
       </div>
+
+      {/* ── Bottom navigation ── */}
+      <nav
+        className={`shrink-0 border-t border-dona-border bg-dona-dark ${
+          expanded ? "flex items-stretch" : "grid grid-cols-3 gap-1 p-2"
+        }`}
+      >
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => selectTab(item.id)}
+            title={item.label}
+            className={`flex flex-col items-center justify-center gap-1 px-1 py-2 transition-colors ${
+              expanded ? "flex-1 text-[10px]" : "rounded-lg text-[9px] leading-tight"
+            } ${
+              tab === item.id
+                ? expanded
+                  ? "text-white bg-white/10 border-t-2 border-blue-500 -mt-px"
+                  : "bg-blue-600 text-white"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            {item.icon}
+            <span className="truncate max-w-full">{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </aside>
   );
 }

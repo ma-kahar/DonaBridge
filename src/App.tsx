@@ -1,6 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { AlertTriangle, Lock, Plus, RefreshCw } from "lucide-react";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AccountDock from "./features/accounts/AccountDock";
 import AddAccountModal from "./features/accounts/AddAccountModal";
@@ -10,6 +10,7 @@ import SettingsModal from "./features/settings/SettingsModal";
 import CommandPalette from "./components/CommandPalette";
 import {
   accountVerifyPin,
+  aiReadActiveChat,
   crmSetDrawerOpen,
   isTauri,
   listAccountGroups,
@@ -37,6 +38,7 @@ export default function App() {
   } = useAppStore();
   const [reloadNonce, setReloadNonce] = useState(0);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const lastAutoReadRef = useRef(0);
   const [addOpen, setAddOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [crmOpen, setCrmOpen] = useState(false);
@@ -189,6 +191,17 @@ export default function App() {
         useAppStore.getState().setSessionState(event.payload.account_id, event.payload.state);
       }
     );
+    // Auto-read the open chat: when WhatsApp reports a new message in the chat
+    // the user already has open, reload its last 20 messages so the Copilot can
+    // prepare a draft. It never reads background chats and never sends.
+    const unlistenAutoRead = listen<{ account_id: string }>("wa:auto-read", (event) => {
+      if (localStorage.getItem("dona_auto_read_open_chat") !== "1") return;
+      if (event.payload.account_id !== useAppStore.getState().activeAccountId) return;
+      const now = Date.now();
+      if (now - lastAutoReadRef.current < 4000) return;
+      lastAutoReadRef.current = now;
+      void aiReadActiveChat(event.payload.account_id);
+    });
     const unlistenShortcut = listen<{ account_id: string; key: string }>("wa:shortcut", (event) => {
       const match = event.payload.key.match(/^Ctrl\+([1-9])$/i);
       if (match) {
@@ -220,6 +233,7 @@ export default function App() {
     return () => {
       void unlistenUnread.then((fn) => fn());
       void unlistenSession.then((fn) => fn());
+      void unlistenAutoRead.then((fn) => fn());
       void unlistenShortcut.then((fn) => fn());
       void unlistenContext.then((fn) => fn());
     };
