@@ -27,7 +27,10 @@ pub fn init(app_data_dir: &Path) -> Result<()> {
     let mut conn = Connection::open(&db_path)?;
 
     // WAL mode for better performance and crash safety (Blueprint §3 #7)
-    conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")?;
+    // busy_timeout: SQLite will retry internally for up to 5 s before returning SQLITE_BUSY.
+    conn.execute_batch(
+        "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;",
+    )?;
 
     // Run all pending migrations (Blueprint §3 #6)
     migrations().to_latest(&mut conn)?;

@@ -44,11 +44,14 @@ impl From<Account> for AccountInfo {
 #[tauri::command]
 #[specta::specta]
 pub async fn list_accounts(_app: AppHandle) -> Result<Vec<AccountInfo>, String> {
-    let conn = db::get()
-        .try_lock_for(std::time::Duration::from_secs(5))
-        .ok_or_else(|| "Database is busy".to_string())?;
-    let list = core_accounts::list_accounts(&conn).map_err(|e| e.to_string())?;
-    Ok(list.into_iter().map(AccountInfo::from).collect())
+    // Run blocking DB work on the blocking thread pool so the async runtime is not starved.
+    tokio::task::spawn_blocking(|| {
+        let conn = db::get().lock();
+        let list = core_accounts::list_accounts(&conn).map_err(|e| e.to_string())?;
+        Ok::<_, String>(list.into_iter().map(AccountInfo::from).collect())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Pre-warm background `wa_*` webviews for all accounts so notifications & unread counts
@@ -81,14 +84,15 @@ pub async fn upsert_account(app: AppHandle, info: AccountInfo) -> Result<Account
         info.id.clone()
     };
 
-    let saved = {
-        let conn = db::get()
-            .try_lock_for(std::time::Duration::from_secs(5))
-            .ok_or_else(|| "Database is busy, please try again.".to_string())?;
-        let existing = core_accounts::get_account(&conn, &id).map_err(|e| e.to_string())?;
+    // Run blocking DB work on a dedicated blocking thread so the async runtime is not starved.
+    // parking_lot::Mutex::lock() blocks the calling OS thread; inside spawn_blocking that is safe.
+    let id_clone = id.clone();
+    let saved = tokio::task::spawn_blocking(move || {
+        let conn = db::get().lock();
+        let existing = core_accounts::get_account(&conn, &id_clone).map_err(|e| e.to_string())?;
         let mut account = existing.unwrap_or_else(|| Account {
-            id: id.clone(),
-            profile_name: id.clone(),
+            id: id_clone.clone(),
+            profile_name: id_clone.clone(),
             zoom: 1.0,
             ..Default::default()
         });
@@ -101,8 +105,10 @@ pub async fn upsert_account(app: AppHandle, info: AccountInfo) -> Result<Account
         if let Some(av) = info.avatar_data_url {
             account.avatar_path = if av.is_empty() { None } else { Some(av) };
         }
-        core_accounts::upsert_account(&conn, &account).map_err(|e| e.to_string())?
-    };
+        core_accounts::upsert_account(&conn, &account).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
 
     Ok(AccountInfo::from(saved))
 }
