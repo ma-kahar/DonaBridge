@@ -1,4 +1,4 @@
-# Dona Bridge v0.1.0 — Complete Feature List
+# Dona Bridge v0.1.1 — Complete Feature List
 
 **Last Updated:** November 24, 2026  
 **Status:** Production-Ready Pre-Release
@@ -142,7 +142,7 @@
 ## 📦 What's Built & Ready
 
 ### Installer
-- **File:** `Dona Bridge_0.1.0_x64-setup.exe`
+- **File:** `Dona Bridge_0.1.1_x64-setup.exe`
 - **Size:** 4.04 MB (4,220,798 bytes)
 - **Platform:** Windows 10 (22H2+) / Windows 11 (x64)
 - **Signing:** ❌ Unsigned (SmartScreen warning expected)
@@ -238,7 +238,7 @@ Security:         10 features (90% complete, 1 planned)
 Windows:           7 features (100% complete)
 UI/UX:            10 features (100% complete)
 
-Overall:          ~95% feature-complete for v0.1.0
+Overall:          ~95% feature-complete for v0.1.1
 Remaining:        5% polish + planned enhancements
 ```
 
@@ -267,7 +267,7 @@ Remaining:        5% polish + planned enhancements
 
 ## 🎉 Summary
 
-Dona Bridge v0.1.0 is a **feature-rich, production-ready** WhatsApp workspace with:
+Dona Bridge v0.1.1 is a **feature-rich, production-ready** WhatsApp workspace with:
 
 - **60+ features** implemented
 - **100% WhatsApp compliant**
@@ -283,6 +283,6 @@ Dona Bridge v0.1.0 is a **feature-rich, production-ready** WhatsApp workspace wi
 ---
 
 **Last Build:** November 24, 2026  
-**Installer:** `Dona Bridge_0.1.0_x64-setup.exe`  
+**Installer:** `Dona Bridge_0.1.1_x64-setup.exe`  
 **Repository:** Clean, no AI traces  
 **Git:** Fresh commit, ready to push
