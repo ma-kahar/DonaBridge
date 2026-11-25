@@ -1,6 +1,9 @@
 import {
   CheckCircle2,
+  CloudUpload,
+  Copy,
   Download,
+  EyeOff,
   FileText,
   FolderOpen,
   Globe,
@@ -27,6 +30,7 @@ import { useTranslation } from "react-i18next";
 import {
   type AccountGroupDto,
   type AiProfile,
+  type AutoBackupSettings,
   type HealthReport,
   type McpStatus,
   aiDeleteProfile,
@@ -35,8 +39,11 @@ import {
   aiSetActiveProfile,
   aiUpsertProfile,
   appHealth,
+  autoBackupSettings,
   backupEncrypted,
+  backupRecoveryCode,
   clearDndSchedule,
+  createAutoBackupNow,
   createSnapshot,
   deleteAccountGroup,
   exportDiagnostics,
@@ -47,6 +54,7 @@ import {
   mcpStop,
   restoreEncrypted,
   restoreSnapshot,
+  saveAutoBackupSettings,
   securityClearPin,
   securityLockStatus,
   securitySetPin,
@@ -100,6 +108,10 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [backupBusy, setBackupBusy] = useState(false);
   const [health, setHealth] = useState<HealthReport | null>(null);
+  const [autoBackup, setAutoBackup] = useState<AutoBackupSettings | null>(null);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [showRecoveryCode, setShowRecoveryCode] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
 
   const [groups, setGroups] = useState<AccountGroupDto[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
@@ -143,6 +155,9 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
     if (!open || tab !== "data") return;
     void appHealth()
       .then(setHealth)
+      .catch((err) => setBackupStatus(String(err)));
+    void autoBackupSettings()
+      .then(setAutoBackup)
       .catch((err) => setBackupStatus(String(err)));
   }, [open, tab]);
 
@@ -390,6 +405,59 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
       const path = await exportDiagnostics();
       setBackupStatus(`Diagnostics exported: ${path}`);
       revealPath(path);
+    } catch (err) {
+      setBackupStatus(String(err));
+    }
+  }
+
+  function updateAutoBackup(patch: Partial<AutoBackupSettings>) {
+    setAutoBackup((current) => (current ? { ...current, ...patch } : current));
+  }
+
+  async function handleChooseBackupFolder() {
+    const picked = await openDialog({
+      directory: true,
+      multiple: false,
+      title: "Choose a folder for encrypted backups",
+    });
+    if (typeof picked === "string") updateAutoBackup({ folder: picked });
+  }
+
+  async function handleSaveAutoBackup() {
+    if (!autoBackup) return;
+    setAutoBusy(true);
+    try {
+      const saved = await saveAutoBackupSettings(autoBackup);
+      setAutoBackup(saved);
+      setBackupStatus("Automatic backup settings saved.");
+    } catch (err) {
+      setBackupStatus(String(err));
+    } finally {
+      setAutoBusy(false);
+    }
+  }
+
+  async function handleAutoBackupNow() {
+    if (!autoBackup) return;
+    setAutoBusy(true);
+    try {
+      const result = await createAutoBackupNow();
+      setBackupStatus(
+        `Encrypted backup created (${result.accounts} accounts, ${formatBytes(result.bytes)}): ${result.path}`
+      );
+      setAutoBackup(await autoBackupSettings());
+    } catch (err) {
+      setBackupStatus(String(err));
+    } finally {
+      setAutoBusy(false);
+    }
+  }
+
+  async function handleShowRecoveryCode() {
+    try {
+      const code = await backupRecoveryCode();
+      setRecoveryCode(code);
+      setShowRecoveryCode(true);
     } catch (err) {
       setBackupStatus(String(err));
     }
@@ -1073,6 +1141,179 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
 
                   {backupStatus && (
                     <p className="text-[11px] text-emerald-400 break-all">{backupStatus}</p>
+                  )}
+                </div>
+
+                {/* Automatic encrypted folder backups */}
+                <div className="rounded-xl bg-dona-dark border border-dona-border p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-white inline-flex items-center gap-1.5">
+                      <CloudUpload className="w-3.5 h-3.5 text-emerald-400" />
+                      Automatic encrypted backups
+                    </p>
+                    {autoBackup && (
+                      <label className="inline-flex items-center gap-2 text-[11px] text-gray-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={autoBackup.enabled}
+                          onChange={(e) => updateAutoBackup({ enabled: e.target.checked })}
+                          className="w-3.5 h-3.5 accent-blue-600"
+                        />
+                        Enabled
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-400">
+                    Encrypted before writing. Point it at a OneDrive, Google Drive or Mega sync
+                    folder, or an external drive, and it is uploaded by that client automatically.
+                  </p>
+
+                  {!autoBackup ? (
+                    <p className="text-[11px] text-gray-500">{t("common.loading")}</p>
+                  ) : (
+                    <>
+                      <div className="flex gap-2">
+                        <input
+                          readOnly
+                          value={autoBackup.folder}
+                          placeholder="Choose a folder…"
+                          className="flex-1 min-w-0 rounded-lg bg-dona-panel border border-dona-border px-2.5 py-1.5 text-[11px] text-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void handleChooseBackupFolder()}
+                          className="px-2.5 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 text-[11px] text-gray-200 inline-flex items-center gap-1 shrink-0"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5" />
+                          Choose
+                        </button>
+                      </div>
+                      {!autoBackup.folder && autoBackup.suggested_folder && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateAutoBackup({ folder: autoBackup.suggested_folder ?? "" })
+                          }
+                          className="text-[10px] text-blue-400 hover:underline text-left break-all"
+                        >
+                          Use suggested folder: {autoBackup.suggested_folder}
+                        </button>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block space-y-1">
+                          <span className="text-[10px] text-gray-400">Back up every</span>
+                          <select
+                            value={autoBackup.interval_hours}
+                            onChange={(e) =>
+                              updateAutoBackup({ interval_hours: Number(e.target.value) })
+                            }
+                            className="w-full rounded-lg bg-dona-panel border border-dona-border px-2 py-1.5 text-[11px] text-gray-200"
+                          >
+                            <option value={6}>6 hours</option>
+                            <option value={12}>12 hours</option>
+                            <option value={24}>24 hours</option>
+                            <option value={168}>7 days</option>
+                          </select>
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-[10px] text-gray-400">Keep</span>
+                          <select
+                            value={autoBackup.keep}
+                            onChange={(e) => updateAutoBackup({ keep: Number(e.target.value) })}
+                            className="w-full rounded-lg bg-dona-panel border border-dona-border px-2 py-1.5 text-[11px] text-gray-200"
+                          >
+                            <option value={7}>7 backups</option>
+                            <option value={14}>14 backups</option>
+                            <option value={30}>30 backups</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={autoBusy}
+                          onClick={() => void handleSaveAutoBackup()}
+                          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-[11px] font-medium text-white"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          disabled={autoBusy || !autoBackup.folder}
+                          onClick={() => void handleAutoBackupNow()}
+                          className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <CloudUpload className="w-3.5 h-3.5" />
+                          Backup now
+                        </button>
+                        {autoBackup.has_key && (
+                          <button
+                            type="button"
+                            onClick={() => void handleShowRecoveryCode()}
+                            className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                          >
+                            <KeyRound className="w-3.5 h-3.5" />
+                            Recovery code
+                          </button>
+                        )}
+                      </div>
+
+                      {showRecoveryCode && recoveryCode && (
+                        <div className="rounded-lg bg-amber-950/30 border border-amber-900/40 p-2.5 space-y-1.5">
+                          <p className="text-[10px] text-amber-200">
+                            Save this code somewhere safe. It is the password needed to restore
+                            these backups on another PC. Without it the files cannot be opened.
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 text-[10px] text-amber-100 break-all">
+                              {recoveryCode}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => void navigator.clipboard?.writeText(recoveryCode)}
+                              className="text-amber-200 hover:text-white shrink-0"
+                              title="Copy recovery code"
+                              aria-label="Copy recovery code"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowRecoveryCode(false)}
+                              className="text-amber-200 hover:text-white shrink-0"
+                              title="Hide recovery code"
+                              aria-label="Hide recovery code"
+                            >
+                              <EyeOff className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="text-[10px] text-gray-500 space-y-0.5">
+                        <p>
+                          Last backup:{" "}
+                          {autoBackup.last_backup_at
+                            ? new Date(autoBackup.last_backup_at).toLocaleString()
+                            : "never"}
+                        </p>
+                        <p>
+                          {autoBackup.count} backup(s) · {formatBytes(autoBackup.bytes)}
+                        </p>
+                        {autoBackup.last_error && (
+                          <p className="text-red-400 break-words">
+                            Last error: {autoBackup.last_error}
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-500">
+                        Backups include accounts, CRM data, templates and settings — not WhatsApp
+                        sessions. Restore with “Restore from backup…” below using the recovery
+                        code.
+                      </p>
+                    </>
                   )}
                 </div>
 

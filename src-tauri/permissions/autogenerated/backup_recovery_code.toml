@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-backup-recovery-code"
+description = "Enables the backup_recovery_code command without any pre-configured scope."
+commands.allow = ["backup_recovery_code"]
+
+[[permission]]
+identifier = "deny-backup-recovery-code"
+description = "Denies the backup_recovery_code command without any pre-configured scope."
+commands.deny = ["backup_recovery_code"]

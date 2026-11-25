@@ -151,6 +151,10 @@ pub fn run() {
             commands::data::create_snapshot,
             commands::data::restore_snapshot,
             commands::data::export_diagnostics,
+            commands::data::auto_backup_settings,
+            commands::data::save_auto_backup_settings,
+            commands::data::create_auto_backup_now,
+            commands::data::backup_recovery_code,
         ])
         // ── Setup ──────────────────────────────────────────────────────────
         .setup(|app| {
@@ -173,6 +177,9 @@ pub fn run() {
             // Take an automatic safety snapshot if the newest one is stale.
             dona_core::db::auto_snapshot_if_due();
 
+            // Encrypted folder backup, if enabled and due.
+            let _ = backup::auto_backup_if_due(app.handle());
+
             // Clean up any WebView2 folders queued from deleted accounts (Blueprint §3 #15)
             let pending_deletes = {
                 let conn = dona_core::db::get().lock();
@@ -194,6 +201,12 @@ pub fn run() {
                     interval.tick().await;
                     // Keep the automatic snapshot fresh while the app is open.
                     dona_core::db::auto_snapshot_if_due();
+                    // Encrypted folder backup (checks its own interval). Run on
+                    // the blocking pool so encryption never stalls the runtime.
+                    let backup_handle = app_handle.clone();
+                    tauri::async_runtime::spawn_blocking(move || {
+                        let _ = crate::backup::auto_backup_if_due(&backup_handle);
+                    });
                     // Use try_lock() so the background timer never blocks Tauri commands
                     // that are concurrently trying to acquire the same DB mutex.
                     let (due, due_tasks) = {
@@ -275,8 +288,10 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building Dona Bridge");
 
-    app.run(|_app, event| {
+    app.run(|app, event| {
         if let tauri::RunEvent::Exit = event {
+            // Encrypted folder backup (if enabled and due) before we close.
+            let _ = crate::backup::auto_backup_if_due(app);
             // Final automatic snapshot + clear the crash marker.
             dona_core::db::end_session();
             info!("Dona Bridge exited cleanly");

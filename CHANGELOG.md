@@ -46,6 +46,11 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **Automatic encrypted folder backups**: choose any folder (OneDrive, Google
+  Drive or Mega sync folder, or an external drive), schedule 6/12/24 h or weekly,
+  and keep 7–30 rolling `.donabk` files. Backups are AES-256-GCM encrypted before
+  writing; a recovery code in Windows Credential Manager can be revealed and
+  saved for restoring on another PC.
 - **Automatic local safety net**: snapshots are taken at startup, every 6 hours
   and on a clean exit (the newest 14 are kept). The database is checked with
   `quick_check` on every start.

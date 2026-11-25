@@ -699,6 +699,41 @@ export async function exportDiagnostics(): Promise<string> {
   return invoke<string>("export_diagnostics");
 }
 
+export interface AutoBackupSettings {
+  enabled: boolean;
+  folder: string;
+  interval_hours: number;
+  keep: number;
+  has_key: boolean;
+  last_backup_at?: string | null;
+  last_error?: string | null;
+  count: number;
+  bytes: number;
+  suggested_folder?: string | null;
+}
+
+export async function autoBackupSettings(): Promise<AutoBackupSettings | null> {
+  if (!isTauri()) return null;
+  return invoke<AutoBackupSettings>("auto_backup_settings");
+}
+
+export async function saveAutoBackupSettings(
+  settings: AutoBackupSettings
+): Promise<AutoBackupSettings> {
+  if (!isTauri()) throw new Error("Backups are only available in the desktop app");
+  return invoke<AutoBackupSettings>("save_auto_backup_settings", { settings });
+}
+
+export async function createAutoBackupNow(): Promise<BackupResult> {
+  if (!isTauri()) throw new Error("Backups are only available in the desktop app");
+  return invoke<BackupResult>("create_auto_backup_now");
+}
+
+export async function backupRecoveryCode(): Promise<string> {
+  if (!isTauri()) throw new Error("Backups are only available in the desktop app");
+  return invoke<string>("backup_recovery_code");
+}
+
 // ── MCP Server IPC ───────────────────────────────────────────────────────────
 
 export interface McpStatus {

@@ -63,7 +63,12 @@ Open the CRM drawer from the taskbar — or click the **Expand (`⛶`)** button 
   - Create reusable message templates with WhatsApp formatting (`*bold*`, `_italic_`, `~strike~`, `` `code` ``), emoji picker, and live preview.
   - **Vertical Quick Replies:** One-click color-coded chips that insert text directly into the WhatsApp composer.
 - **Backup & Restore:**
-  - **Full encrypted backup** in **Settings → Data**: a password-protected `.donabk` file containing every account, CRM record, template and setting. AES-256-GCM with an Argon2id-derived key; portable between PCs (scan the WhatsApp QR code again on the new machine).
+  - **Automatic encrypted backups** in **Settings → Data**: point Dona Bridge at a
+    OneDrive / Google Drive / Mega sync folder or an external drive, choose an
+    interval (6 h, 12 h, 24 h, weekly) and a retention count. Files are encrypted
+    with AES-256-GCM **before** they reach the folder; a recovery code is shown
+    once configured and is the password used to restore them on another PC.
+  - **Full manual encrypted backup**: a password-protected `.donabk` file containing every account, CRM record, template and setting. AES-256-GCM with an Argon2id-derived key; portable between PCs (scan the WhatsApp QR code again on the new machine).
   - Export and import your CRM workspace data (projects, tasks, quick replies, pinned contacts, theme) as a **JSON** file.
   - **Storage & health** panel shows the database size, WebView2 profile size, account/group counts and opens the data or log folder for support.
 

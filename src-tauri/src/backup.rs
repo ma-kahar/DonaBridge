@@ -15,9 +15,11 @@ use aes_gcm::{
 };
 use argon2::Argon2;
 use rusqlite::{params, Connection, OpenFlags};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
+
+use crate::secrets;
 
 const MAGIC: &[u8; 8] = b"DONABK1\0";
 const SALT_LEN: usize = 16;
@@ -139,7 +141,11 @@ pub fn create_backup(
     let _ = std::fs::remove_file(&snapshot);
 
     let account_count = {
-        let conn = dona_core::db::get().lock();
+        // Wait up to 30 s for the database lock; auto-backups must never block
+        // the app permanently.
+        let conn = dona_core::db::get()
+            .try_lock_for(std::time::Duration::from_secs(30))
+            .ok_or_else(|| "Database is busy; try again in a moment".to_string())?;
         // `VACUUM INTO` writes a consistent snapshot, including committed WAL
         // frames, without blocking readers.
         conn.execute("VACUUM INTO ?1", params![snapshot.to_string_lossy()])
@@ -451,6 +457,297 @@ pub fn export_diagnostics(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(out)
 }
 
+// ── Automatic encrypted folder backups ──────────────────────────────────────
+
+const AUTO_BACKUP_KEY: &str = "backup/auto-key";
+const SETTING_ENABLED: &str = "backup_enabled";
+const SETTING_FOLDER: &str = "backup_folder";
+const SETTING_INTERVAL: &str = "backup_interval_hours";
+const SETTING_KEEP: &str = "backup_keep";
+const SETTING_DEVICE: &str = "backup_device_id";
+const SETTING_LAST_AT: &str = "backup_last_at";
+const SETTING_LAST_ERROR: &str = "backup_last_error";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AutoBackupSettings {
+    pub enabled: bool,
+    pub folder: String,
+    pub interval_hours: i64,
+    pub keep: usize,
+    pub has_key: bool,
+    pub last_backup_at: Option<String>,
+    pub last_error: Option<String>,
+    pub count: usize,
+    pub bytes: u64,
+    pub suggested_folder: Option<String>,
+}
+
+fn read_setting(conn: &Connection, key: &str) -> Option<String> {
+    dona_core::db::get_setting(conn, key).ok().flatten()
+}
+
+fn write_setting(conn: &Connection, key: &str, value: &str) -> Result<(), String> {
+    dona_core::db::set_setting(conn, key, value).map_err(|e| e.to_string())
+}
+
+fn suggested_backup_folder() -> Option<String> {
+    if let Ok(onedrive) = std::env::var("OneDrive") {
+        if !onedrive.trim().is_empty() {
+            return Some(
+                PathBuf::from(onedrive)
+                    .join("DonaBridge Backups")
+                    .to_string_lossy()
+                    .to_string(),
+            );
+        }
+    }
+    std::env::var("USERPROFILE").ok().map(|home| {
+        PathBuf::from(home)
+            .join("Documents")
+            .join("DonaBridge Backups")
+            .to_string_lossy()
+            .to_string()
+    })
+}
+
+fn auto_backup_files(folder: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(folder) else {
+        return Vec::new();
+    };
+    let mut files: Vec<PathBuf> = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.is_file()
+                && path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.starts_with("dona-") && name.ends_with(".donabk"))
+        })
+        .collect();
+    files.sort_by(|a, b| b.cmp(a));
+    files
+}
+
+fn folder_backup_stats(folder: &str) -> (usize, u64) {
+    let folder = Path::new(folder);
+    let files = auto_backup_files(folder);
+    let bytes = files
+        .iter()
+        .filter_map(|path| std::fs::metadata(path).ok())
+        .map(|meta| meta.len())
+        .sum();
+    (files.len(), bytes)
+}
+
+fn prune_auto_backups(folder: &Path, keep: usize) {
+    let files = auto_backup_files(folder);
+    if files.len() <= keep {
+        return;
+    }
+    for old in &files[keep..] {
+        let _ = std::fs::remove_file(old);
+    }
+}
+
+fn ensure_auto_backup_key() -> Result<String, String> {
+    if let Some(key) = secrets::get_secret(AUTO_BACKUP_KEY)? {
+        if key.len() >= 8 {
+            return Ok(key);
+        }
+    }
+    // 256 bits from the OS CSPRNG, stored in Windows Credential Manager.
+    let key = format!(
+        "{}{}",
+        uuid::Uuid::new_v4().simple(),
+        uuid::Uuid::new_v4().simple()
+    );
+    secrets::set_secret(AUTO_BACKUP_KEY, &key)?;
+    Ok(key)
+}
+
+fn ensure_device_id(conn: &Connection) -> Result<String, String> {
+    if let Some(id) = read_setting(conn, SETTING_DEVICE) {
+        if !id.trim().is_empty() {
+            return Ok(id);
+        }
+    }
+    let id = uuid::Uuid::new_v4().to_string();
+    write_setting(conn, SETTING_DEVICE, &id)?;
+    Ok(id)
+}
+
+fn validate_backup_folder(folder: &str) -> Result<(), String> {
+    if folder.trim().is_empty() {
+        return Err("Choose a backup folder first".into());
+    }
+    let path = PathBuf::from(folder);
+    std::fs::create_dir_all(&path)
+        .map_err(|e| format!("Could not create the backup folder: {e}"))?;
+    let probe = path.join(".dona-write-test");
+    std::fs::write(&probe, b"ok").map_err(|e| format!("Backup folder is not writable: {e}"))?;
+    let _ = std::fs::remove_file(&probe);
+    Ok(())
+}
+
+pub fn auto_backup_settings(_app: &AppHandle) -> Result<AutoBackupSettings, String> {
+    let (enabled, folder, interval, keep, last_at, last_error) = {
+        let conn = dona_core::db::get().lock();
+        (
+            read_setting(&conn, SETTING_ENABLED).as_deref() == Some("1"),
+            read_setting(&conn, SETTING_FOLDER).unwrap_or_default(),
+            read_setting(&conn, SETTING_INTERVAL)
+                .and_then(|value| value.parse::<i64>().ok())
+                .unwrap_or(24),
+            read_setting(&conn, SETTING_KEEP)
+                .and_then(|value| value.parse::<usize>().ok())
+                .unwrap_or(14),
+            read_setting(&conn, SETTING_LAST_AT),
+            read_setting(&conn, SETTING_LAST_ERROR),
+        )
+    };
+    let (count, bytes) = folder_backup_stats(&folder);
+
+    Ok(AutoBackupSettings {
+        enabled,
+        folder,
+        interval_hours: interval,
+        keep,
+        has_key: secrets::has_secret(AUTO_BACKUP_KEY),
+        last_backup_at: last_at,
+        last_error,
+        count,
+        bytes,
+        suggested_folder: suggested_backup_folder(),
+    })
+}
+
+pub fn save_auto_backup_settings(
+    app: &AppHandle,
+    settings: AutoBackupSettings,
+) -> Result<AutoBackupSettings, String> {
+    let folder = settings.folder.trim().to_string();
+    let interval = settings.interval_hours.clamp(1, 168);
+    let keep = settings.keep.clamp(1, 100);
+
+    if settings.enabled || !folder.is_empty() {
+        validate_backup_folder(&folder)?;
+    }
+
+    {
+        let conn = dona_core::db::get().lock();
+        ensure_device_id(&conn)?;
+        write_setting(
+            &conn,
+            SETTING_ENABLED,
+            if settings.enabled { "1" } else { "0" },
+        )?;
+        write_setting(&conn, SETTING_FOLDER, &folder)?;
+        write_setting(&conn, SETTING_INTERVAL, &interval.to_string())?;
+        write_setting(&conn, SETTING_KEEP, &keep.to_string())?;
+        if settings.enabled && !folder.is_empty() {
+            ensure_auto_backup_key()?;
+        }
+    }
+
+    auto_backup_settings(app)
+}
+
+pub fn backup_recovery_code() -> Result<String, String> {
+    secrets::get_secret(AUTO_BACKUP_KEY)?
+        .filter(|key| key.len() >= 8)
+        .ok_or_else(|| "Automatic backups are not configured yet".to_string())
+}
+
+pub fn create_auto_backup_now(app: &AppHandle) -> Result<BackupResult, String> {
+    let (folder, keep, device) = {
+        let conn = dona_core::db::get().lock();
+        (
+            read_setting(&conn, SETTING_FOLDER).unwrap_or_default(),
+            read_setting(&conn, SETTING_KEEP)
+                .and_then(|value| value.parse::<usize>().ok())
+                .unwrap_or(14),
+            ensure_device_id(&conn)?,
+        )
+    };
+    if folder.trim().is_empty() {
+        return Err("Choose a backup folder first".into());
+    }
+    validate_backup_folder(&folder)?;
+    let key = ensure_auto_backup_key()?;
+    let short_device = device.chars().take(8).collect::<String>();
+    let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    let destination = PathBuf::from(&folder).join(format!("dona-{short_device}-{stamp}.donabk"));
+
+    let result = create_backup(app, &key, &destination);
+    {
+        let conn = dona_core::db::get().lock();
+        match &result {
+            Ok(_) => {
+                let now = chrono::Utc::now().to_rfc3339();
+                let _ = write_setting(&conn, SETTING_LAST_AT, &now);
+                let _ = write_setting(&conn, SETTING_LAST_ERROR, "");
+            }
+            Err(err) => {
+                let _ = write_setting(&conn, SETTING_LAST_ERROR, err);
+            }
+        }
+    }
+
+    if result.is_ok() {
+        prune_auto_backups(Path::new(&folder), keep);
+    }
+    result
+}
+
+/// Run an automatic backup if one is due. Safe to call often; it only reads a
+/// few settings and a folder listing when nothing is due.
+pub fn auto_backup_if_due(app: &AppHandle) -> Result<(), String> {
+    let (enabled, folder, interval, last_at) = {
+        let conn = dona_core::db::get().lock();
+        (
+            read_setting(&conn, SETTING_ENABLED).as_deref() == Some("1"),
+            read_setting(&conn, SETTING_FOLDER).unwrap_or_default(),
+            read_setting(&conn, SETTING_INTERVAL)
+                .and_then(|value| value.parse::<i64>().ok())
+                .unwrap_or(24),
+            read_setting(&conn, SETTING_LAST_AT),
+        )
+    };
+    if !enabled || folder.trim().is_empty() {
+        return Ok(());
+    }
+
+    let due = last_at
+        .as_deref()
+        .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
+        .map(|last| {
+            let elapsed =
+                chrono::Utc::now().signed_duration_since(last.with_timezone(&chrono::Utc));
+            elapsed.num_hours() >= interval
+        })
+        .unwrap_or(true);
+
+    if !due {
+        return Ok(());
+    }
+
+    match create_auto_backup_now(app) {
+        Ok(result) => {
+            tracing::info!(
+                "Automatic encrypted backup written to {} ({} bytes)",
+                result.path,
+                result.bytes
+            );
+            Ok(())
+        }
+        Err(err) => {
+            tracing::warn!("Automatic backup failed: {err}");
+            Err(err)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -501,6 +798,32 @@ mod tests {
         password = "wrong password".into();
         let key_bad = derive_key(&password, &salt).expect("key");
         assert_ne!(key_bad, key_ok);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn auto_backup_files_are_pruned_and_unrelated_files_kept() {
+        let dir = std::env::temp_dir().join(format!("dona-autobackup-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+
+        for index in 0..10 {
+            std::fs::write(
+                dir.join(format!("dona-device-20260101-{:06}.donabk", index)),
+                b"x",
+            )
+            .expect("backup file");
+        }
+        let unrelated = dir.join("notes.txt");
+        std::fs::write(&unrelated, b"keep me").expect("unrelated file");
+
+        prune_auto_backups(&dir, 7);
+
+        assert_eq!(auto_backup_files(&dir).len(), 7);
+        assert!(unrelated.exists());
+        // Newest files are kept, so the first three timestamps are gone.
+        assert!(!dir.join("dona-device-20260101-000000.donabk").exists());
+        assert!(dir.join("dona-device-20260101-000009.donabk").exists());
 
         let _ = std::fs::remove_dir_all(&dir);
     }

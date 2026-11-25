@@ -87,6 +87,10 @@ fn main() {
             "create_snapshot",
             "restore_snapshot",
             "export_diagnostics",
+            "auto_backup_settings",
+            "save_auto_backup_settings",
+            "create_auto_backup_now",
+            "backup_recovery_code",
         ]),
     ))
     .expect("failed to run tauri-build");

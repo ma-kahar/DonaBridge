@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::path::PathBuf;
 use tauri::AppHandle;
 
-use crate::backup::{self, BackupResult, HealthReport};
+use crate::backup::{self, AutoBackupSettings, BackupResult, HealthReport};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct RestoreResult {
@@ -84,4 +84,47 @@ pub async fn export_diagnostics(app: AppHandle) -> Result<String, String> {
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// Current automatic-backup configuration and status.
+#[tauri::command]
+pub async fn auto_backup_settings(app: AppHandle) -> Result<AutoBackupSettings, String> {
+    tokio::task::spawn_blocking(move || {
+        backup::auto_backup_settings(&app).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Save the automatic-backup configuration (creates the encryption key on
+/// first enable).
+#[tauri::command]
+pub async fn save_auto_backup_settings(
+    app: AppHandle,
+    settings: AutoBackupSettings,
+) -> Result<AutoBackupSettings, String> {
+    tokio::task::spawn_blocking(move || {
+        backup::save_auto_backup_settings(&app, settings).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Write an encrypted backup to the configured folder immediately.
+#[tauri::command]
+pub async fn create_auto_backup_now(app: AppHandle) -> Result<BackupResult, String> {
+    tokio::task::spawn_blocking(move || {
+        backup::create_auto_backup_now(&app).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Reveal the recovery code for automatic backups. The code is the password
+/// needed to restore those files on another PC.
+#[tauri::command]
+pub async fn backup_recovery_code() -> Result<String, String> {
+    tokio::task::spawn_blocking(backup::backup_recovery_code)
+        .await
+        .map_err(|e| e.to_string())?
 }
