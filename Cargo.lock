@@ -1105,7 +1105,7 @@ dependencies = [
 
 [[package]]
 name = "dona-bridge"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1145,7 +1145,7 @@ dependencies = [
 
 [[package]]
 name = "dona-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1162,7 +1162,7 @@ dependencies = [
 
 [[package]]
 name = "dona-mcp-bridge"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "reqwest 0.12.28",

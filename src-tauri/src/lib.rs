@@ -1,6 +1,9 @@
 // Dona Bridge — library root
 // All Tauri setup, plugin registration, and command wiring lives here.
 
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::OnceLock;
 use tauri::Manager;
 use tracing::info;
 
@@ -16,9 +19,24 @@ pub mod webviews;
 #[cfg(target_os = "windows")]
 pub mod windows;
 
+/// Log directory resolved during startup; also used by the panic hook.
+static LOG_DIR: OnceLock<PathBuf> = OnceLock::new();
+/// Set once Tauri setup finished, so background-thread panics later do not
+/// pop up the fatal-startup dialog.
+static STARTUP_COMPLETE: AtomicBool = AtomicBool::new(false);
+
+fn default_log_dir() -> PathBuf {
+    std::env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir)
+        .join("com.makahar.donabridge")
+        .join("logs")
+}
+
 /// Application entry point called from main.rs.
 pub fn run() {
     init_logging();
+    install_panic_hook();
 
     info!("Dona Bridge starting up");
 
@@ -191,8 +209,11 @@ pub fn run() {
                     let _ = window.show();
                     let _ = window.set_focus();
                 }
+            } else {
+                tracing::error!("Main window was not created");
             }
 
+            STARTUP_COMPLETE.store(true, Ordering::SeqCst);
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -229,11 +250,8 @@ fn init_logging() {
 
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
-    let log_dir = std::env::var_os("LOCALAPPDATA")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(std::env::temp_dir)
-        .join("com.makahar.donabridge")
-        .join("logs");
+    let log_dir = default_log_dir();
+    let _ = LOG_DIR.set(log_dir.clone());
 
     if let Err(err) = std::fs::create_dir_all(&log_dir) {
         tracing_subscriber::registry()
@@ -257,4 +275,65 @@ fn init_logging() {
         .with(fmt::layer())
         .with(fmt::layer().with_writer(file_writer).with_ansi(false))
         .init();
+}
+
+/// Turn a startup panic into something the user can actually see.
+///
+/// In a release build stderr goes nowhere, so a failure while building the app
+/// looked exactly like “clicking the icon does nothing”. Every panic is written
+/// to `logs/crash.log`; panics before setup completes also show a native dialog.
+fn install_panic_hook() {
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let message = info.to_string();
+        let dir = LOG_DIR.get().cloned().unwrap_or_else(default_log_dir);
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("crash.log");
+        let line = format!(
+            "[{}] {message}\n",
+            chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
+        );
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&path)
+        {
+            use std::io::Write;
+            let _ = file.write_all(line.as_bytes());
+        }
+
+        if !STARTUP_COMPLETE.load(Ordering::SeqCst) {
+            show_fatal_dialog(&format!(
+                "Dona Bridge could not start.\n\n{message}\n\nDetails were saved to:\n{}",
+                path.display()
+            ));
+        }
+
+        default_hook(info);
+    }));
+}
+
+#[cfg(target_os = "windows")]
+fn show_fatal_dialog(message: &str) {
+    use ::windows::core::HSTRING;
+    use ::windows::Win32::Foundation::HWND;
+    use ::windows::Win32::UI::WindowsAndMessaging::{
+        MessageBoxW, MB_ICONERROR, MB_OK, MB_SETFOREGROUND, MB_TOPMOST,
+    };
+
+    let text = HSTRING::from(message);
+    let caption = HSTRING::from("Dona Bridge");
+    unsafe {
+        MessageBoxW(
+            HWND(std::ptr::null_mut()),
+            &text,
+            &caption,
+            MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND,
+        );
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn show_fatal_dialog(message: &str) {
+    eprintln!("{message}");
 }

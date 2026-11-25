@@ -4,6 +4,18 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+### Fixed — startup
+
+- **The application could not start at all.** The Tauri updater plugin was
+  registered without a `plugins.updater` configuration section, so plugin
+  initialization panicked before the window was created — clicking the icon did
+  nothing. Added a safe placeholder configuration (empty endpoints/public key)
+  so the app starts and the update button reports “not configured”.
+- Added a native crash dialog and `logs/crash.log`. Startup failures are no
+  longer silent; the dialog shows the error and the log path.
+- Version bumped to 0.1.1 so the fixed installer is distinguishable from the
+  broken 0.1.0 build.
+
 ### Fixed — data loss / reliability
 
 - **Fixed the startup deadlock that made every saved account disappear.**
