@@ -429,6 +429,12 @@
           "markdownDescription": "Enables the backup_encrypted command without any pre-configured scope."
         },
         {
+          "description": "Enables the create_snapshot command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-create-snapshot",
+          "markdownDescription": "Enables the create_snapshot command without any pre-configured scope."
+        },
+        {
           "description": "Enables the crm_add_note command without any pre-configured scope.",
           "type": "string",
           "const": "allow-crm-add-note",
@@ -669,6 +675,12 @@
           "markdownDescription": "Enables the delete_account_group command without any pre-configured scope."
         },
         {
+          "description": "Enables the export_diagnostics command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-export-diagnostics",
+          "markdownDescription": "Enables the export_diagnostics command without any pre-configured scope."
+        },
+        {
           "description": "Enables the list_account_groups command without any pre-configured scope.",
           "type": "string",
           "const": "allow-list-account-groups",
@@ -721,6 +733,12 @@
           "type": "string",
           "const": "allow-restore-encrypted",
           "markdownDescription": "Enables the restore_encrypted command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the restore_snapshot command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-restore-snapshot",
+          "markdownDescription": "Enables the restore_snapshot command without any pre-configured scope."
         },
         {
           "description": "Enables the secret_delete command without any pre-configured scope.",
@@ -925,6 +943,12 @@
           "type": "string",
           "const": "deny-backup-encrypted",
           "markdownDescription": "Denies the backup_encrypted command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the create_snapshot command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-create-snapshot",
+          "markdownDescription": "Denies the create_snapshot command without any pre-configured scope."
         },
         {
           "description": "Denies the crm_add_note command without any pre-configured scope.",
@@ -1167,6 +1191,12 @@
           "markdownDescription": "Denies the delete_account_group command without any pre-configured scope."
         },
         {
+          "description": "Denies the export_diagnostics command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-export-diagnostics",
+          "markdownDescription": "Denies the export_diagnostics command without any pre-configured scope."
+        },
+        {
           "description": "Denies the list_account_groups command without any pre-configured scope.",
           "type": "string",
           "const": "deny-list-account-groups",
@@ -1219,6 +1249,12 @@
           "type": "string",
           "const": "deny-restore-encrypted",
           "markdownDescription": "Denies the restore_encrypted command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the restore_snapshot command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-restore-snapshot",
+          "markdownDescription": "Denies the restore_snapshot command without any pre-configured scope."
         },
         {
           "description": "Denies the secret_delete command without any pre-configured scope.",

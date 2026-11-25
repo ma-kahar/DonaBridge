@@ -46,6 +46,17 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **Automatic local safety net**: snapshots are taken at startup, every 6 hours
+  and on a clean exit (the newest 14 are kept). The database is checked with
+  `quick_check` on every start.
+- **Crash & corruption recovery**: a damaged database is quarantined and the
+  newest valid snapshot is restored automatically. An unclean shutdown is
+  detected via a session marker and explained in a Recovery dialog.
+- **Recovery Center** (Settings → Data): database integrity, unclean-session
+  notice, snapshot list with one-click restore, “Create snapshot”, “Open
+  backups” and “Export diagnostics” (logs + health bundle).
+- **UI error boundary**: a render error now shows a recovery screen with
+  Reload / Open logs / Export diagnostics instead of a blank window.
 - **Pro CRM dashboard**: the right-hand CRM panel is now 420 px wide with top
   tabs (Contacts, Pipeline, Tasks, Reports), contact/win-rate/revenue metric
   cards, quick actions, recent contacts and an AI Copilot card. Secondary

@@ -33,6 +33,13 @@ pub struct BackupResult {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct SnapshotInfo {
+    pub path: String,
+    pub bytes: u64,
+    pub created_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct HealthReport {
     pub data_dir: String,
     pub db_path: String,
@@ -46,6 +53,10 @@ pub struct HealthReport {
     pub webview_bytes: u64,
     pub version: String,
     pub os: String,
+    pub unclean_shutdown: bool,
+    pub integrity_ok: bool,
+    pub recovery_notice: Option<String>,
+    pub snapshots: Vec<SnapshotInfo>,
 }
 
 fn data_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -215,9 +226,8 @@ pub fn stage_restore(app: &AppHandle, source: &Path, password: &str) -> Result<u
     };
 
     dona_core::db::note_pending_restore(&dir, &staging_name).map_err(|e| e.to_string())?;
-    // Flush the live WAL before the app restarts so the pre-restore snapshot is
-    // complete.
-    dona_core::db::checkpoint();
+    // Flush the live WAL and clear the session marker before the restart.
+    dona_core::db::end_session();
 
     tracing::info!(
         "Restore staged from {} ({account_count} accounts); restarting to apply",
@@ -266,7 +276,7 @@ pub fn health_report(app: &AppHandle) -> Result<HealthReport, String> {
             .unwrap_or(0)
     };
 
-    let (account_count, group_count) = {
+    let (account_count, group_count, integrity_ok) = {
         let conn = dona_core::db::get().lock();
         let accounts: i64 = conn
             .query_row("SELECT count(*) FROM accounts", [], |row| row.get(0))
@@ -274,10 +284,22 @@ pub fn health_report(app: &AppHandle) -> Result<HealthReport, String> {
         let groups: i64 = conn
             .query_row("SELECT count(*) FROM account_groups", [], |row| row.get(0))
             .unwrap_or(0);
-        (accounts as usize, groups as usize)
+        let integrity = conn
+            .query_row("PRAGMA quick_check(1)", [], |row| row.get::<_, String>(0))
+            .map(|value| value.eq_ignore_ascii_case("ok"))
+            .unwrap_or(false);
+        (accounts as usize, groups as usize, integrity)
     };
 
     let webview_dir = dir.join("WebView2");
+    let snapshots = dona_core::db::list_auto_snapshots()
+        .into_iter()
+        .map(|(path, bytes, created)| SnapshotInfo {
+            path: path.to_string_lossy().to_string(),
+            bytes,
+            created_at: created.map(|dt| dt.to_rfc3339()),
+        })
+        .collect();
 
     Ok(HealthReport {
         data_dir: dir.to_string_lossy().to_string(),
@@ -292,7 +314,141 @@ pub fn health_report(app: &AppHandle) -> Result<HealthReport, String> {
         webview_bytes: dir_size(&webview_dir),
         version: app.package_info().version.to_string(),
         os: format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
+        unclean_shutdown: dona_core::db::last_session_unclean(),
+        integrity_ok,
+        recovery_notice: dona_core::db::recovery_notice(),
+        snapshots,
     })
+}
+
+/// Take a local automatic snapshot immediately.
+pub fn create_snapshot() -> Result<PathBuf, String> {
+    dona_core::db::auto_snapshot()
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Could not create a snapshot: the database is busy. Try again.".to_string())
+}
+
+/// Restore a plain automatic snapshot, then restart to apply it.
+pub fn stage_snapshot_restore(app: &AppHandle, source: &Path) -> Result<usize, String> {
+    let dir = data_dir(app)?;
+    let backup_dir = dir.join("backups");
+    let canonical_source = source
+        .canonicalize()
+        .map_err(|e| format!("Snapshot not found: {e}"))?;
+    let canonical_backups = backup_dir
+        .canonicalize()
+        .map_err(|e| format!("Backups folder not found: {e}"))?;
+    if !canonical_source.starts_with(&canonical_backups) {
+        return Err("Only snapshots inside the backups folder can be restored".into());
+    }
+
+    let conn = Connection::open_with_flags(&canonical_source, OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .map_err(|e| format!("Snapshot is not a valid database: {e}"))?;
+    let integrity: String = conn
+        .query_row("PRAGMA integrity_check", [], |row| row.get(0))
+        .map_err(|e| format!("Snapshot integrity check failed: {e}"))?;
+    if integrity != "ok" {
+        return Err(format!("Snapshot is damaged: {integrity}"));
+    }
+    let tables: i64 = conn
+        .query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='accounts'",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("Snapshot is not a Dona Bridge database: {e}"))?;
+    if tables != 1 {
+        return Err("Snapshot does not contain Dona Bridge data".into());
+    }
+    let version: i64 = conn
+        .query_row("PRAGMA user_version", [], |row| row.get(0))
+        .unwrap_or(0);
+    if version > dona_core::db::LATEST_SCHEMA_VERSION {
+        return Err("Snapshot was created by a newer version of Dona Bridge".into());
+    }
+    let accounts: i64 = conn
+        .query_row("SELECT count(*) FROM accounts", [], |row| row.get(0))
+        .map_err(|e| format!("Could not read accounts from the snapshot: {e}"))?;
+    drop(conn);
+
+    let staging_name = format!("restore-staging-{}.db", uuid::Uuid::new_v4());
+    std::fs::copy(&canonical_source, dir.join(&staging_name))
+        .map_err(|e| format!("Could not stage the snapshot: {e}"))?;
+    dona_core::db::note_pending_restore(&dir, &staging_name).map_err(|e| e.to_string())?;
+    dona_core::db::end_session();
+
+    tracing::info!(
+        "Snapshot {} staged for restore; restarting",
+        canonical_source.display()
+    );
+    let handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(700)).await;
+        handle.restart();
+    });
+
+    Ok(accounts as usize)
+}
+
+/// Bundle the logs and a health summary into a diagnostics folder.
+pub fn export_diagnostics(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = data_dir(app)?;
+    let health = health_report(app)?;
+    let out = dir.join(format!(
+        "diagnostics-{}",
+        chrono::Local::now().format("%Y%m%d-%H%M%S")
+    ));
+    std::fs::create_dir_all(&out)
+        .map_err(|e| format!("Could not create diagnostics folder: {e}"))?;
+
+    let log_dir = PathBuf::from(&health.log_dir);
+    if let Ok(entries) = std::fs::read_dir(&log_dir) {
+        let mut logs: Vec<PathBuf> = entries
+            .flatten()
+            .map(|entry| entry.path())
+            .filter(|path| path.is_file())
+            .collect();
+        logs.sort_by_key(|path| {
+            std::fs::metadata(path)
+                .and_then(|meta| meta.modified())
+                .ok()
+        });
+        logs.reverse();
+        for path in logs.into_iter().take(5) {
+            if let Some(name) = path.file_name() {
+                let _ = std::fs::copy(&path, out.join(name));
+            }
+        }
+    }
+
+    let json = serde_json::to_string_pretty(&health)
+        .map_err(|e| format!("Could not serialise health data: {e}"))?;
+    std::fs::write(out.join("health.json"), json)
+        .map_err(|e| format!("Could not write health.json: {e}"))?;
+
+    let summary = format!(
+        "Dona Bridge diagnostics\n\
+         Version: {}\n\
+         OS: {}\n\
+         Data folder: {}\n\
+         Database: {}\n\
+         Logs: {}\n\
+         Previous session unclean: {}\n\
+         Integrity check: {}\n\
+         Recovery notice: {}\n",
+        health.version,
+        health.os,
+        health.data_dir,
+        health.db_path,
+        health.log_dir,
+        health.unclean_shutdown,
+        if health.integrity_ok { "ok" } else { "failed" },
+        health.recovery_notice.as_deref().unwrap_or("none"),
+    );
+    std::fs::write(out.join("summary.txt"), summary)
+        .map_err(|e| format!("Could not write summary.txt: {e}"))?;
+
+    Ok(out)
 }
 
 #[cfg(test)]

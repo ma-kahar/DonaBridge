@@ -84,6 +84,9 @@ fn main() {
             "backup_encrypted",
             "restore_encrypted",
             "app_health",
+            "create_snapshot",
+            "restore_snapshot",
+            "export_diagnostics",
         ]),
     ))
     .expect("failed to run tauri-build");

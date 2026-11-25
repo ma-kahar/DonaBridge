@@ -641,6 +641,12 @@ export interface RestoreResult {
   accounts: number;
 }
 
+export interface SnapshotInfo {
+  path: string;
+  bytes: number;
+  created_at?: string | null;
+}
+
 export interface HealthReport {
   data_dir: string;
   db_path: string;
@@ -654,6 +660,10 @@ export interface HealthReport {
   webview_bytes: number;
   version: string;
   os: string;
+  unclean_shutdown: boolean;
+  integrity_ok: boolean;
+  recovery_notice: string | null;
+  snapshots: SnapshotInfo[];
 }
 
 export async function backupEncrypted(
@@ -672,6 +682,21 @@ export async function restoreEncrypted(path: string, password: string): Promise<
 export async function appHealth(): Promise<HealthReport | null> {
   if (!isTauri()) return null;
   return invoke<HealthReport>("app_health");
+}
+
+export async function createSnapshot(): Promise<string> {
+  if (!isTauri()) throw new Error("Snapshots are only available in the desktop app");
+  return invoke<string>("create_snapshot");
+}
+
+export async function restoreSnapshot(path: string): Promise<RestoreResult> {
+  if (!isTauri()) throw new Error("Restores are only available in the desktop app");
+  return invoke<RestoreResult>("restore_snapshot", { path });
+}
+
+export async function exportDiagnostics(): Promise<string> {
+  if (!isTauri()) throw new Error("Diagnostics are only available in the desktop app");
+  return invoke<string>("export_diagnostics");
 }
 
 // ── MCP Server IPC ───────────────────────────────────────────────────────────

@@ -107,6 +107,19 @@ database is locked (antivirus scan, OneDrive sync, a leftover process) the app
 shows a “Could not open your accounts” screen with a **Retry** button instead of
 the first-run setup screen. Check the log file above for the exact error.
 
+### Automatic recovery
+
+- The database is checked on every start. A damaged file is **quarantined** (kept
+  in `backups\corrupt-…`) and the newest valid automatic snapshot is restored.
+- Snapshots are written at startup, every 6 hours and on a clean exit; the
+  newest 14 are kept in `%LOCALAPPDATA%\com.makahar.donabridge\backups`.
+- If Windows or the app was killed, the next start shows a **Recovery** dialog
+  explaining what happened, with a one-click restore of the latest snapshot.
+- **Settings → Data → Recovery & safety** shows the database integrity, the
+  snapshot list, and can export a diagnostics bundle (logs + health) for support.
+- A UI error shows a recovery screen (Reload / Open logs / Export diagnostics)
+  instead of a blank window.
+
 ---
 
 ## 🛠️ Build from Source (Developers)

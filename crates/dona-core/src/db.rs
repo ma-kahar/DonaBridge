@@ -8,7 +8,10 @@ use rusqlite::Connection;
 use rusqlite_migration::{Migrations, M};
 use std::{
     path::{Path, PathBuf},
-    sync::OnceLock,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        OnceLock,
+    },
     time::Duration,
 };
 
@@ -24,6 +27,27 @@ pub const LATEST_SCHEMA_VERSION: i64 = 3;
 
 /// Marker file written before a restore; applied on the next startup.
 const RESTORE_MARKER: &str = "restore.pending";
+
+/// Present while the app is running. Removed on a clean exit; if it still
+/// exists on the next start, the previous session crashed or was killed.
+const SESSION_MARKER: &str = "session.running";
+
+/// Automatic snapshot prefix and retention (kept in the backups folder).
+const AUTO_PREFIX: &str = "auto-";
+const AUTO_KEEP: usize = 14;
+const AUTO_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
+
+static DATA_DIR: OnceLock<PathBuf> = OnceLock::new();
+static LAST_UNCLEAN: AtomicBool = AtomicBool::new(false);
+static INTEGRITY_OK: AtomicBool = AtomicBool::new(true);
+static RECOVERY_NOTICE: Mutex<Option<String>> = Mutex::new(None);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DbHealth {
+    Ok,
+    Corrupt,
+    Busy,
+}
 
 /// All migrations in order. Never modify an existing migration — add a new one.
 fn migrations() -> Migrations<'static> {
@@ -51,6 +75,14 @@ pub fn init(app_data_dir: &Path) -> Result<()> {
 /// database can appear empty or corrupt after a reboot).
 pub fn init_with_legacy(dir: &Path, legacy_dir: Option<&Path>) -> Result<()> {
     std::fs::create_dir_all(dir)?;
+    let _ = DATA_DIR.set(dir.to_path_buf());
+
+    // Detect an unclean shutdown before we write the marker for this session.
+    let unclean = dir.join(SESSION_MARKER).exists();
+    LAST_UNCLEAN.store(unclean, Ordering::SeqCst);
+    if unclean {
+        tracing::warn!("Previous session did not exit cleanly");
+    }
 
     // A restore is staged on disk and applied here, before SQLite opens the
     // database. Replacing an open SQLite file on Windows is not reliable, so
@@ -62,6 +94,21 @@ pub fn init_with_legacy(dir: &Path, legacy_dir: Option<&Path>) -> Result<()> {
     if !db_path.exists() {
         if let Some(legacy) = legacy_dir {
             migrate_from_legacy(legacy, dir);
+        }
+    }
+
+    // Never open a damaged database normally: quarantine it and fall back to
+    // the newest automatic snapshot that passes its own integrity check.
+    if db_path.exists() {
+        match check_db_file(&db_path) {
+            DbHealth::Ok => INTEGRITY_OK.store(true, Ordering::SeqCst),
+            DbHealth::Corrupt => {
+                INTEGRITY_OK.store(false, Ordering::SeqCst);
+                recover_corrupt_database(dir, &db_path);
+            }
+            DbHealth::Busy => {
+                tracing::warn!("Startup integrity check skipped: database is busy");
+            }
         }
     }
 
@@ -105,8 +152,226 @@ pub fn init_with_legacy(dir: &Path, legacy_dir: Option<&Path>) -> Result<()> {
     DB.set(Mutex::new(conn))
         .map_err(|_| crate::error::CoreError::Other("DB already initialised".into()))?;
 
+    if let Err(err) = mark_session_started(dir) {
+        tracing::warn!("Could not write the session marker: {err}");
+    }
+
     tracing::info!("Database ready at {}", db_path.display());
     Ok(())
+}
+
+/// Whether the previous session ended without a clean exit.
+pub fn last_session_unclean() -> bool {
+    LAST_UNCLEAN.load(Ordering::SeqCst)
+}
+
+/// Whether the database passed its startup integrity check.
+pub fn integrity_ok() -> bool {
+    INTEGRITY_OK.load(Ordering::SeqCst)
+}
+
+/// A user-facing message set when the startup found or repaired a problem.
+pub fn recovery_notice() -> Option<String> {
+    RECOVERY_NOTICE.lock().clone()
+}
+
+fn set_recovery_notice(message: String) {
+    tracing::error!("{message}");
+    *RECOVERY_NOTICE.lock() = Some(message);
+}
+
+fn mark_session_started(dir: &Path) -> std::io::Result<()> {
+    let content = format!(
+        "{{\"pid\":{},\"started_at\":\"{}\"}}",
+        std::process::id(),
+        chrono::Utc::now().to_rfc3339()
+    );
+    std::fs::write(dir.join(SESSION_MARKER), content)
+}
+
+/// Finish a clean session: take a final snapshot, then clear the crash marker.
+pub fn end_session() {
+    let _ = auto_snapshot();
+    if let Some(dir) = DATA_DIR.get() {
+        let _ = std::fs::remove_file(dir.join(SESSION_MARKER));
+    }
+}
+
+fn check_db_file(path: &Path) -> DbHealth {
+    // Use a normal (not read-only) connection: a WAL database needs its shared
+    // memory file, and a read-only open can fail with "unable to open database
+    // file" on a perfectly healthy database.
+    let conn = match Connection::open(path) {
+        Ok(conn) => conn,
+        Err(err) => {
+            let message = err.to_string().to_lowercase();
+            return if message.contains("locked") || message.contains("busy") {
+                DbHealth::Busy
+            } else {
+                DbHealth::Corrupt
+            };
+        }
+    };
+
+    match conn.query_row("PRAGMA quick_check(1)", [], |row| row.get::<_, String>(0)) {
+        Ok(value) if value.eq_ignore_ascii_case("ok") => DbHealth::Ok,
+        Ok(_) => DbHealth::Corrupt,
+        Err(err) => {
+            let message = err.to_string().to_lowercase();
+            if message.contains("locked") || message.contains("busy") {
+                DbHealth::Busy
+            } else {
+                DbHealth::Corrupt
+            }
+        }
+    }
+}
+
+/// Automatic snapshots, newest first.
+fn auto_snapshot_files(backup_dir: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(backup_dir) else {
+        return Vec::new();
+    };
+    let mut files: Vec<PathBuf> = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.is_file()
+                && path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.starts_with(AUTO_PREFIX) && name.ends_with(".db"))
+        })
+        .collect();
+    files.sort_by(|a, b| b.cmp(a));
+    files
+}
+
+/// Newest automatic snapshot that still opens cleanly.
+fn newest_valid_auto_snapshot(backup_dir: &Path) -> Option<PathBuf> {
+    auto_snapshot_files(backup_dir)
+        .into_iter()
+        .find(|path| check_db_file(path) == DbHealth::Ok)
+}
+
+fn recover_corrupt_database(dir: &Path, db_path: &Path) {
+    let backup_dir = dir.join("backups");
+    let quarantine_dir = backup_dir.join(format!(
+        "corrupt-{}",
+        chrono::Local::now().format("%Y%m%d-%H%M%S")
+    ));
+
+    if std::fs::create_dir_all(&quarantine_dir).is_ok() {
+        for name in DB_SIDECARS {
+            let source = dir.join(name);
+            if source.exists() {
+                let _ = std::fs::rename(&source, quarantine_dir.join(name));
+            }
+        }
+    }
+
+    if let Some(snapshot) = newest_valid_auto_snapshot(&backup_dir) {
+        if std::fs::copy(&snapshot, db_path).is_ok() && check_db_file(db_path) == DbHealth::Ok {
+            INTEGRITY_OK.store(true, Ordering::SeqCst);
+            let name = snapshot
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("automatic snapshot");
+            set_recovery_notice(format!(
+                "The database was damaged and has been restored from {name}. \
+                 The damaged copy was preserved in {}.",
+                quarantine_dir.display()
+            ));
+            return;
+        }
+    }
+
+    INTEGRITY_OK.store(false, Ordering::SeqCst);
+    set_recovery_notice(format!(
+        "The database was damaged and no usable automatic snapshot was found. \
+         A copy of the damaged database was preserved in {}. Restore a backup from \
+         Settings → Data, or contact support with that folder.",
+        quarantine_dir.display()
+    ));
+}
+
+/// Take an automatic snapshot of the live database (rotated, newest 14 kept).
+pub fn auto_snapshot() -> Result<Option<PathBuf>> {
+    let Some(dir) = DATA_DIR.get() else {
+        return Ok(None);
+    };
+    let Some(mutex) = DB.get() else {
+        return Ok(None);
+    };
+    let Some(conn) = mutex.try_lock_for(Duration::from_secs(5)) else {
+        tracing::warn!("Skipping automatic snapshot: database is busy");
+        return Ok(None);
+    };
+
+    let backup_dir = dir.join("backups");
+    std::fs::create_dir_all(&backup_dir)?;
+    let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    let target = backup_dir.join(format!("{AUTO_PREFIX}{stamp}.db"));
+    if target.exists() {
+        return Ok(Some(target));
+    }
+
+    conn.execute(
+        "VACUUM INTO ?1",
+        rusqlite::params![target.to_string_lossy()],
+    )?;
+    prune_auto_snapshots(&backup_dir);
+    tracing::info!(
+        "Automatic database snapshot written to {}",
+        target.display()
+    );
+    Ok(Some(target))
+}
+
+/// Take a snapshot if the newest one is older than six hours.
+pub fn auto_snapshot_if_due() {
+    let Some(dir) = DATA_DIR.get() else {
+        return;
+    };
+    let backup_dir = dir.join("backups");
+    let due = auto_snapshot_files(&backup_dir)
+        .first()
+        .and_then(|path| std::fs::metadata(path).ok())
+        .and_then(|meta| meta.modified().ok())
+        .and_then(|modified| modified.elapsed().ok())
+        .is_none_or(|elapsed| elapsed >= AUTO_INTERVAL);
+
+    if due {
+        let _ = auto_snapshot();
+    }
+}
+
+fn prune_auto_snapshots(backup_dir: &Path) {
+    let files = auto_snapshot_files(backup_dir);
+    if files.len() <= AUTO_KEEP {
+        return;
+    }
+    for old in &files[AUTO_KEEP..] {
+        let _ = std::fs::remove_file(old);
+    }
+}
+
+/// List the automatic snapshots, newest first.
+pub fn list_auto_snapshots() -> Vec<(PathBuf, u64, Option<chrono::DateTime<chrono::Local>>)> {
+    let Some(dir) = DATA_DIR.get() else {
+        return Vec::new();
+    };
+    auto_snapshot_files(&dir.join("backups"))
+        .into_iter()
+        .map(|path| {
+            let meta = std::fs::metadata(&path).ok();
+            let bytes = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+            let created = meta
+                .and_then(|m| m.modified().ok())
+                .map(chrono::DateTime::<chrono::Local>::from);
+            (path, bytes, created)
+        })
+        .collect()
 }
 
 /// Copy an existing database (plus WAL/SHM sidecars) from `legacy` to `target`.
@@ -343,5 +608,78 @@ mod tests {
             )
             .expect("query tables");
         assert_eq!(count, 7);
+    }
+
+    #[test]
+    fn quick_check_detects_valid_and_corrupt_databases() {
+        let dir = TempDir::new().expect("tempdir");
+
+        let valid = dir.path().join("valid.db");
+        let conn = Connection::open(&valid).expect("open valid db");
+        conn.execute_batch("CREATE TABLE t (x INTEGER); INSERT INTO t VALUES (1);")
+            .expect("schema");
+        drop(conn);
+        assert_eq!(check_db_file(&valid), DbHealth::Ok);
+
+        let corrupt = dir.path().join("corrupt.db");
+        std::fs::write(&corrupt, b"this is definitely not a sqlite database").expect("write");
+        assert_eq!(check_db_file(&corrupt), DbHealth::Corrupt);
+    }
+
+    #[test]
+    fn recovers_from_the_newest_valid_auto_snapshot() {
+        let dir = TempDir::new().expect("tempdir");
+        let backups = dir.path().join("backups");
+        std::fs::create_dir_all(&backups).expect("backups dir");
+
+        let snapshot = backups.join("auto-20260101-000000.db");
+        let conn = Connection::open(&snapshot).expect("snapshot db");
+        conn.execute_batch(
+            "CREATE TABLE accounts (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL);
+             INSERT INTO accounts (id, name) VALUES ('a', 'Alpha');",
+        )
+        .expect("snapshot schema");
+        drop(conn);
+
+        let live = dir.path().join("dona.db");
+        std::fs::write(&live, b"garbage instead of a database").expect("write corrupt");
+
+        recover_corrupt_database(dir.path(), &live);
+
+        assert_eq!(check_db_file(&live), DbHealth::Ok);
+        let conn = Connection::open(&live).expect("recovered db");
+        let name: String = conn
+            .query_row("SELECT name FROM accounts WHERE id = 'a'", [], |row| {
+                row.get(0)
+            })
+            .expect("read recovered row");
+        assert_eq!(name, "Alpha");
+        assert!(recovery_notice().is_some());
+        assert!(std::fs::read_dir(&backups)
+            .expect("backups")
+            .flatten()
+            .any(|entry| entry.file_name().to_string_lossy().starts_with("corrupt-")));
+    }
+
+    #[test]
+    fn auto_snapshots_sort_newest_first_and_prune() {
+        let dir = TempDir::new().expect("tempdir");
+        let backups = dir.path().join("backups");
+        std::fs::create_dir_all(&backups).expect("backups dir");
+        for index in 0..16 {
+            std::fs::write(backups.join(format!("auto-20260101-{:06}.db", index)), b"x")
+                .expect("snapshot file");
+        }
+
+        let files = auto_snapshot_files(&backups);
+        assert_eq!(files.len(), 16);
+        assert!(files[0].to_string_lossy().contains("000015"));
+
+        prune_auto_snapshots(&backups);
+        let remaining = auto_snapshot_files(&backups);
+        assert_eq!(remaining.len(), AUTO_KEEP);
+        assert!(!remaining
+            .iter()
+            .any(|path| path.to_string_lossy().contains("000000")));
     }
 }

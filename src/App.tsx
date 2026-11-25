@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { AlertTriangle, Lock, Plus, RefreshCw } from "lucide-react";
+import { AlertTriangle, Lock, Plus, RefreshCw, RotateCcw } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddAccountModal from "./features/accounts/AddAccountModal";
@@ -11,16 +11,19 @@ import AppTaskbar from "./components/AppTaskbar";
 import {
   accountVerifyPin,
   aiReadActiveChat,
+  appHealth,
   crmSetDrawerOpen,
   isTauri,
   listAccountGroups,
   listAccounts,
   prewarmAccounts,
+  restoreSnapshot,
   securityLockApp,
   securityLockStatus,
   setOverlayOpen,
   switchAccount,
 } from "./lib/ipc";
+import type { HealthReport } from "./lib/ipc";
 import { type Account, type SessionState, useAppStore } from "./store";
 
 export default function App() {
@@ -38,6 +41,9 @@ export default function App() {
   } = useAppStore();
   const [reloadNonce, setReloadNonce] = useState(0);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [recovery, setRecovery] = useState<HealthReport | null>(null);
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
   const lastAutoReadRef = useRef(0);
   const [addOpen, setAddOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -66,6 +72,19 @@ export default function App() {
     if (!crmOpen) setCrmExpanded(false);
   }, [crmOpen]);
 
+  // Check the recovery state once at startup: an unclean shutdown or a
+  // database that was repaired/quarantined should be explained, not ignored.
+  useEffect(() => {
+    if (!isTauri()) return;
+    void appHealth()
+      .then((health) => {
+        if (health && (health.unclean_shutdown || health.recovery_notice)) {
+          setRecovery(health);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Hide native wa_* WebView2 child when any React modal/lock/full-screen CRM
   // overlay is open. The WhatsApp session is a native child window and always
   // paints above HTML, so it must be hidden while the CRM is full-screen.
@@ -75,7 +94,8 @@ export default function App() {
     locked ||
     pendingUnlockAccount !== null ||
     paletteOpen ||
-    crmExpanded;
+    crmExpanded ||
+    recovery !== null;
   useEffect(() => {
     void setOverlayOpen(overlayOpen, activeAccountId);
   }, [overlayOpen, activeAccountId]);
@@ -277,6 +297,23 @@ export default function App() {
     }
   }
 
+  async function handleRecoveryRestore() {
+    const snapshot = recovery?.snapshots[0];
+    if (!snapshot) return;
+    const confirmed = window.confirm(
+      "Restore the latest automatic snapshot? Current data will be replaced and Dona Bridge will restart. A pre-restore copy is kept in the backups folder."
+    );
+    if (!confirmed) return;
+    setRecoveryBusy(true);
+    setRecoveryError(null);
+    try {
+      await restoreSnapshot(snapshot.path);
+    } catch (err) {
+      setRecoveryError(String(err));
+      setRecoveryBusy(false);
+    }
+  }
+
   return (
     <div className="flex flex-col h-screen bg-dona-dark text-white overflow-hidden">
       <div className="flex flex-1 min-h-0">
@@ -429,6 +466,68 @@ export default function App() {
         </div>
       )}
       {locked && <LockScreen helloAvailable={helloAvailable} onUnlocked={handleUnlocked} />}
+
+      {recovery && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-dona-panel border border-dona-border p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-400" />
+              <h2 className="text-base font-semibold text-dona-fg">Recovery</h2>
+            </div>
+            <p className="text-xs text-dona-muted leading-relaxed break-words">
+              {recovery.recovery_notice ??
+                "Dona Bridge didn't close normally last time. Committed data is safe."}
+            </p>
+            {recovery.snapshots[0] && (
+              <p className="text-[11px] text-dona-muted">
+                Latest automatic snapshot:{" "}
+                <span className="text-dona-fg">
+                  {recovery.snapshots[0].created_at
+                    ? new Date(recovery.snapshots[0].created_at).toLocaleString()
+                    : recovery.snapshots[0].path.split("\\").pop()}
+                </span>
+              </p>
+            )}
+            {recoveryError && (
+              <p className="text-[11px] text-red-400 break-words">{recoveryError}</p>
+            )}
+            <div className="flex flex-col gap-2">
+              {recovery.snapshots[0] && (
+                <button
+                  type="button"
+                  onClick={() => void handleRecoveryRestore()}
+                  disabled={recoveryBusy}
+                  className="w-full py-2 rounded-lg bg-dona-accent hover:bg-dona-accentHover disabled:opacity-50 text-xs font-medium text-white inline-flex items-center justify-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  {recoveryBusy ? "Restoring…" : "Restore latest snapshot"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setRecovery(null)}
+                className="w-full py-2 rounded-lg border border-dona-border hover:bg-white/5 text-xs text-dona-fg"
+              >
+                Continue
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRecovery(null);
+                  setSettingsOpen(true);
+                }}
+                className="w-full py-2 rounded-lg border border-dona-border hover:bg-white/5 text-xs text-dona-muted"
+              >
+                Open recovery settings
+              </button>
+            </div>
+            <p className="text-[10px] text-dona-faint">
+              Your data stays local. Encrypted backups and automatic snapshots are in Settings →
+              Data.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -148,6 +148,9 @@ pub fn run() {
             commands::data::backup_encrypted,
             commands::data::restore_encrypted,
             commands::data::app_health,
+            commands::data::create_snapshot,
+            commands::data::restore_snapshot,
+            commands::data::export_diagnostics,
         ])
         // ── Setup ──────────────────────────────────────────────────────────
         .setup(|app| {
@@ -166,6 +169,9 @@ pub fn run() {
 
             // Ensure any pending WAL frames from an unexpected shutdown/restart are flushed
             dona_core::db::checkpoint();
+
+            // Take an automatic safety snapshot if the newest one is stale.
+            dona_core::db::auto_snapshot_if_due();
 
             // Clean up any WebView2 folders queued from deleted accounts (Blueprint §3 #15)
             let pending_deletes = {
@@ -186,6 +192,8 @@ pub fn run() {
                 let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
                 loop {
                     interval.tick().await;
+                    // Keep the automatic snapshot fresh while the app is open.
+                    dona_core::db::auto_snapshot_if_due();
                     // Use try_lock() so the background timer never blocks Tauri commands
                     // that are concurrently trying to acquire the same DB mutex.
                     let (due, due_tasks) = {
@@ -269,7 +277,8 @@ pub fn run() {
 
     app.run(|_app, event| {
         if let tauri::RunEvent::Exit = event {
-            dona_core::db::checkpoint();
+            // Final automatic snapshot + clear the crash marker.
+            dona_core::db::end_session();
             info!("Dona Bridge exited cleanly");
         }
     });
