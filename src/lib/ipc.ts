@@ -128,11 +128,6 @@ export async function setOverlayOpen(open: boolean, activeAccountId: string | nu
   return invoke<void>("set_overlay_open", { open, activeAccountId });
 }
 
-export async function setDockCollapsed(collapsed: boolean): Promise<void> {
-  if (!isTauri()) return;
-  return invoke<void>("set_dock_collapsed", { collapsed });
-}
-
 // ── CRM IPC ──────────────────────────────────────────────────────────────────
 
 export async function crmListContacts(accountId: string): Promise<ContactDto[]> {

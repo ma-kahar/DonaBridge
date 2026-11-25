@@ -46,6 +46,17 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **WhatsApp colour system**: the full app now uses WhatsApp's dark/light palette
+  and signature teal accent. Light mode text, inputs, borders and buttons are
+  contrast-corrected.
+- **Left dock removed**: the account switcher now lives in the bottom taskbar
+  (right-click an avatar to edit), giving the WhatsApp view the full width.
+- **Premium account colours**: 12 curated gradient swatches, larger colour
+  picker, and shadowed/ringed avatars in the taskbar.
+- **Refined CRM navigation**: larger rounded bottom tiles with an accent-tinted
+  active state, matching the WhatsApp look.
+- **No floating panels**: removed the sticky inspector, backdrop blur and drawer
+  transition that made the right side appear to float while scrolling.
 - **LiteCRM (Tier 1)**: deals with value, currency, probability and expected
   close date; custom pipelines and stages; a drag-and-drop deal board with
   column totals; contact timeline; custom contact fields; unified tasks with

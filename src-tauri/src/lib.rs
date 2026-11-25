@@ -70,7 +70,6 @@ pub fn run() {
             commands::accounts::account_verify_pin,
             commands::accounts::account_clear_pin,
             commands::accounts::set_overlay_open,
-            commands::accounts::set_dock_collapsed,
             commands::accounts::list_account_groups,
             commands::accounts::upsert_account_group,
             commands::accounts::delete_account_group,

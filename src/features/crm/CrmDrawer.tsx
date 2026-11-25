@@ -340,18 +340,18 @@ export default function CrmDrawer({
 
   return (
     <aside
-      className={`${widthClass} shrink-0 h-full bg-dona-dark flex flex-col ${
-        expanded ? "" : "border-l border-dona-border transition-all duration-200"
+      className={`${widthClass} shrink-0 h-full bg-dona-panel flex flex-col ${
+        expanded ? "" : "border-l border-dona-border"
       }`}
     >
       {/* ── Header ── */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-dona-border shrink-0">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-dona-border bg-dona-panel2 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <h2 className="font-semibold text-white text-sm whitespace-nowrap">
+          <h2 className="font-semibold text-dona-fg text-sm whitespace-nowrap">
             {expanded ? "Dona CRM" : t("crm.title")}
           </h2>
           {expanded && activeAccount && (
-            <span className="text-[11px] text-gray-300 bg-white/5 border border-dona-border rounded-full px-2 py-0.5 truncate max-w-[220px]">
+            <span className="text-[11px] text-dona-muted bg-dona-panel border border-dona-border rounded-full px-2 py-0.5 truncate max-w-[220px]">
               {activeAccount.name}
             </span>
           )}
@@ -660,7 +660,7 @@ export default function CrmDrawer({
               <aside
                 className={
                   expanded
-                    ? "sticky top-0 max-h-[calc(100vh-9rem)] overflow-y-auto rounded-xl border border-dona-border bg-dona-panel/20 p-3"
+                    ? "max-h-[calc(100vh-9rem)] overflow-y-auto rounded-xl border border-dona-border bg-dona-panel2/60 p-3"
                     : ""
                 }
               >
@@ -952,8 +952,8 @@ export default function CrmDrawer({
 
       {/* ── Bottom navigation ── */}
       <nav
-        className={`shrink-0 border-t border-dona-border bg-dona-dark ${
-          expanded ? "flex items-stretch" : "grid grid-cols-3 gap-1 p-2"
+        className={`shrink-0 border-t border-dona-border bg-dona-panel2 ${
+          expanded ? "flex items-stretch" : "grid grid-cols-3 gap-1.5 p-2"
         }`}
       >
         {navItems.map((item) => (
@@ -962,18 +962,22 @@ export default function CrmDrawer({
             type="button"
             onClick={() => selectTab(item.id)}
             title={item.label}
-            className={`flex flex-col items-center justify-center gap-1 px-1 py-2 transition-colors ${
-              expanded ? "flex-1 text-[10px]" : "rounded-lg text-[9px] leading-tight"
+            className={`flex flex-col items-center justify-center gap-1 px-1 transition-colors ${
+              expanded
+                ? "flex-1 text-[10px] py-2 border-t-2 -mt-px"
+                : "rounded-xl text-[9px] leading-tight py-2.5 border"
             } ${
               tab === item.id
                 ? expanded
-                  ? "text-white bg-white/10 border-t-2 border-blue-500 -mt-px"
-                  : "bg-blue-600 text-white"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
+                  ? "text-dona-accent bg-dona-accent/10 border-dona-accent"
+                  : "bg-dona-accent/15 text-dona-accent border-dona-accent/35 shadow-sm shadow-black/10"
+                : expanded
+                  ? "text-dona-muted hover:text-dona-fg hover:bg-dona-panel border-transparent"
+                  : "text-dona-muted border-transparent hover:text-dona-fg hover:bg-dona-panel"
             }`}
           >
             {item.icon}
-            <span className="truncate max-w-full">{item.label}</span>
+            <span className="truncate max-w-full font-medium">{item.label}</span>
           </button>
         ))}
       </nav>

@@ -777,12 +777,6 @@
           "markdownDescription": "Enables the security_unlock_pin command without any pre-configured scope."
         },
         {
-          "description": "Enables the set_dock_collapsed command without any pre-configured scope.",
-          "type": "string",
-          "const": "allow-set-dock-collapsed",
-          "markdownDescription": "Enables the set_dock_collapsed command without any pre-configured scope."
-        },
-        {
           "description": "Enables the set_overlay_open command without any pre-configured scope.",
           "type": "string",
           "const": "allow-set-overlay-open",
@@ -1279,12 +1273,6 @@
           "type": "string",
           "const": "deny-security-unlock-pin",
           "markdownDescription": "Denies the security_unlock_pin command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the set_dock_collapsed command without any pre-configured scope.",
-          "type": "string",
-          "const": "deny-set-dock-collapsed",
-          "markdownDescription": "Denies the set_dock_collapsed command without any pre-configured scope."
         },
         {
           "description": "Denies the set_overlay_open command without any pre-configured scope.",

@@ -3,11 +3,48 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+    /* WhatsApp dark palette */
+    --dona-bg: 11 20 26; /* #0B141A */
+    --dona-panel: 17 27 33; /* #111B21 */
+    --dona-panel2: 32 44 51; /* #202C33 */
+    --dona-border: 42 57 66; /* #2A3942 */
+    --dona-fg: 233 237 239; /* #E9EDEF */
+    --dona-muted: 134 150 160; /* #8696A0 */
+    --dona-faint: 102 119 129; /* #667781 */
+    --dona-accent: 0 168 132; /* #00A884 */
+    --dona-accent-hover: 6 207 156; /* #06CF9C */
+  }
+
+  html.light {
+    color-scheme: light;
+    /* WhatsApp light palette */
+    --dona-bg: 240 242 245; /* #F0F2F5 */
+    --dona-panel: 255 255 255; /* #FFFFFF */
+    --dona-panel2: 247 248 250; /* #F7F8FA */
+    --dona-border: 233 237 239; /* #E9EDEF */
+    --dona-fg: 17 27 33; /* #111B21 */
+    --dona-muted: 102 119 129; /* #667781 */
+    --dona-faint: 134 150 160; /* #8696A0 */
+    --dona-accent: 0 128 105; /* #008069 */
+    --dona-accent-hover: 0 168 132; /* #00A884 */
+  }
+
   html,
   body,
   #root {
     @apply h-full w-full m-0 p-0;
     font-family: "Inter", "Noto Sans Bengali", system-ui, sans-serif;
+  }
+
+  body {
+    background-color: rgb(var(--dona-bg));
+    color: rgb(var(--dona-fg));
+  }
+
+  ::selection {
+    background: rgb(var(--dona-accent) / 0.3);
   }
 
   ::-webkit-scrollbar {
@@ -17,29 +54,115 @@
     @apply bg-transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-white/20 rounded-full;
+    background: rgb(var(--dona-fg) / 0.18);
+    @apply rounded-full;
+  }
+  html.light ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.18);
   }
 
-  /* ── Light mode overrides ── */
-  html.light {
-    --dona-dark:   #F0F2F5;
-    --dona-panel:  #FFFFFF;
-    --dona-border: #D1D7DB;
-    --dona-text:   #111B21;
-    --dona-muted:  #54656F;
+  /* ── WhatsApp accent for legacy blue/emerald utilities ── */
+  .bg-blue-600,
+  .bg-emerald-600 {
+    background-color: rgb(var(--dona-accent)) !important;
   }
-  html.light body,
-  html.light #root {
-    background-color: var(--dona-dark);
-    color: var(--dona-text);
+  .hover\:bg-blue-500:hover,
+  .hover\:bg-emerald-500:hover {
+    background-color: rgb(var(--dona-accent-hover)) !important;
   }
-  html.light .text-white         { color: var(--dona-text) !important; }
-  html.light .text-gray-400      { color: var(--dona-muted) !important; }
-  html.light .text-gray-300      { color: #374151 !important; }
-  html.light .text-gray-500      { color: #6B7280 !important; }
-  html.light .bg-dona-dark       { background-color: var(--dona-dark) !important; }
-  html.light .bg-dona-panel      { background-color: var(--dona-panel) !important; }
-  html.light .border-dona-border { border-color: var(--dona-border) !important; }
-  html.light .bg-dona-dark\/80   { background-color: rgba(240,242,245,0.9) !important; }
-  html.light ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15) !important; }
+  .text-blue-200,
+  .text-blue-300,
+  .text-blue-400,
+  .text-emerald-300,
+  .text-emerald-400 {
+    color: rgb(var(--dona-accent)) !important;
+  }
+  .border-blue-500,
+  .border-emerald-500,
+  .border-emerald-800\/50 {
+    border-color: rgb(var(--dona-accent) / 0.55) !important;
+  }
+  .ring-blue-500,
+  .focus\:ring-blue-500:focus {
+    --tw-ring-color: rgb(var(--dona-accent)) !important;
+  }
+  .bg-blue-600\/30,
+  .bg-blue-600\/40,
+  .bg-blue-950\/30,
+  .bg-blue-950\/40,
+  .bg-emerald-900\/30 {
+    background-color: rgb(var(--dona-accent) / 0.12) !important;
+  }
+  .border-blue-800\/50,
+  .border-blue-700\/50 {
+    border-color: rgb(var(--dona-accent) / 0.35) !important;
+  }
+  .accent-blue-600 {
+    accent-color: rgb(var(--dona-accent));
+  }
+
+  /* ── Light mode contrast fixes for legacy utility classes ── */
+  html.light .text-white,
+  html.light .text-gray-100,
+  html.light .text-gray-200 {
+    color: #111b21 !important;
+  }
+  html.light .text-gray-300 {
+    color: #3b4a54 !important;
+  }
+  html.light .text-gray-400,
+  html.light .text-gray-500 {
+    color: #667781 !important;
+  }
+  html.light .text-gray-600 {
+    color: #8696a0 !important;
+  }
+
+  /* Keep white text on accent / coloured surfaces in light mode */
+  html.light .bg-blue-600.text-white,
+  html.light .bg-emerald-600.text-white,
+  html.light .bg-dona-accent.text-white,
+  html.light .bg-red-600.text-white,
+  html.light .bg-amber-600.text-white {
+    color: #ffffff !important;
+  }
+  html.light .rounded-full.text-white[style*="background"] {
+    color: #ffffff !important;
+  }
+
+  html.light .bg-white\/5,
+  html.light .hover\:bg-white\/5:hover {
+    background-color: rgba(0, 0, 0, 0.045) !important;
+  }
+  html.light .bg-white\/10,
+  html.light .hover\:bg-white\/10:hover {
+    background-color: rgba(0, 0, 0, 0.075) !important;
+  }
+  html.light .border-white\/10 {
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+  html.light .border-white\/20 {
+    border-color: rgba(0, 0, 0, 0.14) !important;
+  }
+  html.light .bg-black\/20 {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+  }
+  html.light .bg-black\/30 {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+  html.light .bg-black\/40 {
+    background-color: rgba(0, 0, 0, 0.06) !important;
+  }
+
+  /* Form controls keep readable text and placeholders in both themes */
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(var(--dona-faint));
+  }
+  html.light input,
+  html.light select,
+  html.light textarea {
+    color: #111b21;
+    background-color: #ffffff;
+  }
 }

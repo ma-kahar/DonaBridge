@@ -18,7 +18,7 @@
 | **Live unread badges** | ✅ | Real-time message count on account cards |
 | **Taskbar unread badge** | ✅ | Windows taskbar overlay icon with count |
 | **Keyboard shortcuts** | ✅ | `Ctrl+1–9` for quick switching |
-| **Drag-to-reorder** | ✅ | Reorganize accounts via drag-and-drop |
+| **Drag-to-reorder** | ⏳ | Planned (accounts follow creation order for now) |
 | **Account groups** | ✅ | Organize into Shop, Personal, Clients, etc. |
 | **Per-account PIN lock** | ✅ | Individual Argon2id PIN protection |
 | **Mute notifications** | ✅ | Disable per-account notifications |

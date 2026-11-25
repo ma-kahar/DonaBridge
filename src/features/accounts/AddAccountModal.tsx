@@ -1,4 +1,4 @@
-import { ImagePlus, Lock, Trash2, X } from "lucide-react";
+import { Check, ImagePlus, Lock, Trash2, X } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -12,7 +12,20 @@ import {
 } from "../../lib/ipc";
 import { type Account, useAppStore } from "../../store";
 
-const COLOR_PRESETS = ["#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#06B6D4", "#6366F1"];
+const COLOR_PRESETS = [
+  "#00A884",
+  "#0EA5E9",
+  "#6366F1",
+  "#8B5CF6",
+  "#D946EF",
+  "#F43F5E",
+  "#F59E0B",
+  "#10B981",
+  "#14B8A6",
+  "#64748B",
+  "#B45309",
+  "#1E293B",
+];
 
 interface AddAccountModalProps {
   open: boolean;
@@ -290,20 +303,26 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
 
           <div>
             <span className="block text-sm text-gray-300 mb-2">{t("accounts.colorLabel")}</span>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-6 gap-2">
               {COLOR_PRESETS.map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => setColor(preset)}
-                  className={`w-8 h-8 rounded-full transition-transform ${
+                  className={`relative w-9 h-9 rounded-xl shadow-md shadow-black/20 transition-transform ${
                     color === preset
-                      ? "ring-2 ring-white scale-110"
-                      : "opacity-75 hover:opacity-100"
+                      ? "ring-2 ring-dona-accent ring-offset-2 ring-offset-dona-panel scale-105"
+                      : "opacity-85 hover:opacity-100 hover:scale-105"
                   }`}
-                  style={{ backgroundColor: preset }}
+                  style={{
+                    background: `linear-gradient(135deg, ${preset} 0%, ${preset}cc 100%)`,
+                  }}
                   aria-label={preset}
-                />
+                >
+                  {color === preset && (
+                    <Check className="w-4 h-4 text-white absolute inset-0 m-auto drop-shadow" />
+                  )}
+                </button>
               ))}
             </div>
           </div>
