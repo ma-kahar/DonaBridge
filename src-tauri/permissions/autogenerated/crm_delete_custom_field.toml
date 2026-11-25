@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-delete-custom-field"
+description = "Enables the crm_delete_custom_field command without any pre-configured scope."
+commands.allow = ["crm_delete_custom_field"]
+
+[[permission]]
+identifier = "deny-crm-delete-custom-field"
+description = "Denies the crm_delete_custom_field command without any pre-configured scope."
+commands.deny = ["crm_delete_custom_field"]

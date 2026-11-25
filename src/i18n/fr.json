@@ -108,6 +108,8 @@
     "title": "CRM",
     "contacts": "Contacts",
     "pipeline": "Pipeline",
+    "tasks": "Tâches",
+    "reports": "Rapports",
     "reminders": "Rappels",
     "templates": "Réponses rapides",
     "addContact": "Ajouter un contact",

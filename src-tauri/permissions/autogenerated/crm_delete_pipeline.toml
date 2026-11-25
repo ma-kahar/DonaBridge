@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-delete-pipeline"
+description = "Enables the crm_delete_pipeline command without any pre-configured scope."
+commands.allow = ["crm_delete_pipeline"]
+
+[[permission]]
+identifier = "deny-crm-delete-pipeline"
+description = "Denies the crm_delete_pipeline command without any pre-configured scope."
+commands.deny = ["crm_delete_pipeline"]

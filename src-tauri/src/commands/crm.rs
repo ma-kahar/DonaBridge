@@ -4,7 +4,7 @@
 
 use chrono::{DateTime, Utc};
 use dona_core::{
-    crm as core_crm, db,
+    crm as core_crm, crm_ext, db,
     models::{Contact, Note, Reminder, Tag, Template},
 };
 use serde::{Deserialize, Serialize};
@@ -123,7 +123,36 @@ pub async fn crm_upsert_contact(contact: ContactDto) -> Result<ContactDto, Strin
         updated_at: None,
     };
     let conn = db::get().lock();
+    let previous = core_crm::get_contact(&conn, &model.id).map_err(|e| e.to_string())?;
     let saved = core_crm::upsert_contact(&conn, &model).map_err(|e| e.to_string())?;
+
+    match previous {
+        Some(before) if before.stage != saved.stage => {
+            let _ = crm_ext::add_activity(
+                &conn,
+                &saved.account_id,
+                Some(&saved.id),
+                None,
+                "stage",
+                &format!("Stage: {} → {}", before.stage, saved.stage),
+            );
+        }
+        None => {
+            let _ = crm_ext::add_activity(
+                &conn,
+                &saved.account_id,
+                Some(&saved.id),
+                None,
+                "contact",
+                &format!(
+                    "Contact added: {}",
+                    saved.display_name.as_deref().unwrap_or(&saved.phone_e164)
+                ),
+            );
+        }
+        _ => {}
+    }
+
     Ok(ContactDto::from(saved))
 }
 

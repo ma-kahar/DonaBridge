@@ -441,10 +441,46 @@
           "markdownDescription": "Enables the crm_assign_tag command without any pre-configured scope."
         },
         {
+          "description": "Enables the crm_contact_timeline command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-contact-timeline",
+          "markdownDescription": "Enables the crm_contact_timeline command without any pre-configured scope."
+        },
+        {
           "description": "Enables the crm_delete_contact command without any pre-configured scope.",
           "type": "string",
           "const": "allow-crm-delete-contact",
           "markdownDescription": "Enables the crm_delete_contact command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_delete_custom_field command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-delete-custom-field",
+          "markdownDescription": "Enables the crm_delete_custom_field command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_delete_deal command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-delete-deal",
+          "markdownDescription": "Enables the crm_delete_deal command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_delete_pipeline command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-delete-pipeline",
+          "markdownDescription": "Enables the crm_delete_pipeline command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_delete_stage command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-delete-stage",
+          "markdownDescription": "Enables the crm_delete_stage command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_delete_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-delete-task",
+          "markdownDescription": "Enables the crm_delete_task command without any pre-configured scope."
         },
         {
           "description": "Enables the crm_delete_template command without any pre-configured scope.",
@@ -457,6 +493,12 @@
           "type": "string",
           "const": "allow-crm-export-csv",
           "markdownDescription": "Enables the crm_export_csv command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_get_contact_fields command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-get-contact-fields",
+          "markdownDescription": "Enables the crm_get_contact_fields command without any pre-configured scope."
         },
         {
           "description": "Enables the crm_import_csv command without any pre-configured scope.",
@@ -483,10 +525,28 @@
           "markdownDescription": "Enables the crm_list_contacts command without any pre-configured scope."
         },
         {
+          "description": "Enables the crm_list_custom_fields command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-list-custom-fields",
+          "markdownDescription": "Enables the crm_list_custom_fields command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_list_deals command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-list-deals",
+          "markdownDescription": "Enables the crm_list_deals command without any pre-configured scope."
+        },
+        {
           "description": "Enables the crm_list_notes command without any pre-configured scope.",
           "type": "string",
           "const": "allow-crm-list-notes",
           "markdownDescription": "Enables the crm_list_notes command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_list_pipelines command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-list-pipelines",
+          "markdownDescription": "Enables the crm_list_pipelines command without any pre-configured scope."
         },
         {
           "description": "Enables the crm_list_reminders command without any pre-configured scope.",
@@ -501,16 +561,40 @@
           "markdownDescription": "Enables the crm_list_tags command without any pre-configured scope."
         },
         {
+          "description": "Enables the crm_list_tasks command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-list-tasks",
+          "markdownDescription": "Enables the crm_list_tasks command without any pre-configured scope."
+        },
+        {
           "description": "Enables the crm_list_templates command without any pre-configured scope.",
           "type": "string",
           "const": "allow-crm-list-templates",
           "markdownDescription": "Enables the crm_list_templates command without any pre-configured scope."
         },
         {
+          "description": "Enables the crm_move_deal command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-move-deal",
+          "markdownDescription": "Enables the crm_move_deal command without any pre-configured scope."
+        },
+        {
           "description": "Enables the crm_remove_tag command without any pre-configured scope.",
           "type": "string",
           "const": "allow-crm-remove-tag",
           "markdownDescription": "Enables the crm_remove_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_report command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-report",
+          "markdownDescription": "Enables the crm_report command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_set_contact_field command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-set-contact-field",
+          "markdownDescription": "Enables the crm_set_contact_field command without any pre-configured scope."
         },
         {
           "description": "Enables the crm_set_drawer_open command without any pre-configured scope.",
@@ -525,16 +609,46 @@
           "markdownDescription": "Enables the crm_upsert_contact command without any pre-configured scope."
         },
         {
+          "description": "Enables the crm_upsert_custom_field command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-upsert-custom-field",
+          "markdownDescription": "Enables the crm_upsert_custom_field command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_upsert_deal command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-upsert-deal",
+          "markdownDescription": "Enables the crm_upsert_deal command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_upsert_pipeline command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-upsert-pipeline",
+          "markdownDescription": "Enables the crm_upsert_pipeline command without any pre-configured scope."
+        },
+        {
           "description": "Enables the crm_upsert_reminder command without any pre-configured scope.",
           "type": "string",
           "const": "allow-crm-upsert-reminder",
           "markdownDescription": "Enables the crm_upsert_reminder command without any pre-configured scope."
         },
         {
+          "description": "Enables the crm_upsert_stage command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-upsert-stage",
+          "markdownDescription": "Enables the crm_upsert_stage command without any pre-configured scope."
+        },
+        {
           "description": "Enables the crm_upsert_tag command without any pre-configured scope.",
           "type": "string",
           "const": "allow-crm-upsert-tag",
           "markdownDescription": "Enables the crm_upsert_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_upsert_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-upsert-task",
+          "markdownDescription": "Enables the crm_upsert_task command without any pre-configured scope."
         },
         {
           "description": "Enables the crm_upsert_template command without any pre-configured scope.",
@@ -825,10 +939,46 @@
           "markdownDescription": "Denies the crm_assign_tag command without any pre-configured scope."
         },
         {
+          "description": "Denies the crm_contact_timeline command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-contact-timeline",
+          "markdownDescription": "Denies the crm_contact_timeline command without any pre-configured scope."
+        },
+        {
           "description": "Denies the crm_delete_contact command without any pre-configured scope.",
           "type": "string",
           "const": "deny-crm-delete-contact",
           "markdownDescription": "Denies the crm_delete_contact command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_delete_custom_field command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-delete-custom-field",
+          "markdownDescription": "Denies the crm_delete_custom_field command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_delete_deal command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-delete-deal",
+          "markdownDescription": "Denies the crm_delete_deal command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_delete_pipeline command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-delete-pipeline",
+          "markdownDescription": "Denies the crm_delete_pipeline command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_delete_stage command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-delete-stage",
+          "markdownDescription": "Denies the crm_delete_stage command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_delete_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-delete-task",
+          "markdownDescription": "Denies the crm_delete_task command without any pre-configured scope."
         },
         {
           "description": "Denies the crm_delete_template command without any pre-configured scope.",
@@ -841,6 +991,12 @@
           "type": "string",
           "const": "deny-crm-export-csv",
           "markdownDescription": "Denies the crm_export_csv command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_get_contact_fields command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-get-contact-fields",
+          "markdownDescription": "Denies the crm_get_contact_fields command without any pre-configured scope."
         },
         {
           "description": "Denies the crm_import_csv command without any pre-configured scope.",
@@ -867,10 +1023,28 @@
           "markdownDescription": "Denies the crm_list_contacts command without any pre-configured scope."
         },
         {
+          "description": "Denies the crm_list_custom_fields command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-list-custom-fields",
+          "markdownDescription": "Denies the crm_list_custom_fields command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_list_deals command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-list-deals",
+          "markdownDescription": "Denies the crm_list_deals command without any pre-configured scope."
+        },
+        {
           "description": "Denies the crm_list_notes command without any pre-configured scope.",
           "type": "string",
           "const": "deny-crm-list-notes",
           "markdownDescription": "Denies the crm_list_notes command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_list_pipelines command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-list-pipelines",
+          "markdownDescription": "Denies the crm_list_pipelines command without any pre-configured scope."
         },
         {
           "description": "Denies the crm_list_reminders command without any pre-configured scope.",
@@ -885,16 +1059,40 @@
           "markdownDescription": "Denies the crm_list_tags command without any pre-configured scope."
         },
         {
+          "description": "Denies the crm_list_tasks command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-list-tasks",
+          "markdownDescription": "Denies the crm_list_tasks command without any pre-configured scope."
+        },
+        {
           "description": "Denies the crm_list_templates command without any pre-configured scope.",
           "type": "string",
           "const": "deny-crm-list-templates",
           "markdownDescription": "Denies the crm_list_templates command without any pre-configured scope."
         },
         {
+          "description": "Denies the crm_move_deal command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-move-deal",
+          "markdownDescription": "Denies the crm_move_deal command without any pre-configured scope."
+        },
+        {
           "description": "Denies the crm_remove_tag command without any pre-configured scope.",
           "type": "string",
           "const": "deny-crm-remove-tag",
           "markdownDescription": "Denies the crm_remove_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_report command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-report",
+          "markdownDescription": "Denies the crm_report command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_set_contact_field command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-set-contact-field",
+          "markdownDescription": "Denies the crm_set_contact_field command without any pre-configured scope."
         },
         {
           "description": "Denies the crm_set_drawer_open command without any pre-configured scope.",
@@ -909,16 +1107,46 @@
           "markdownDescription": "Denies the crm_upsert_contact command without any pre-configured scope."
         },
         {
+          "description": "Denies the crm_upsert_custom_field command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-upsert-custom-field",
+          "markdownDescription": "Denies the crm_upsert_custom_field command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_upsert_deal command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-upsert-deal",
+          "markdownDescription": "Denies the crm_upsert_deal command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_upsert_pipeline command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-upsert-pipeline",
+          "markdownDescription": "Denies the crm_upsert_pipeline command without any pre-configured scope."
+        },
+        {
           "description": "Denies the crm_upsert_reminder command without any pre-configured scope.",
           "type": "string",
           "const": "deny-crm-upsert-reminder",
           "markdownDescription": "Denies the crm_upsert_reminder command without any pre-configured scope."
         },
         {
+          "description": "Denies the crm_upsert_stage command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-upsert-stage",
+          "markdownDescription": "Denies the crm_upsert_stage command without any pre-configured scope."
+        },
+        {
           "description": "Denies the crm_upsert_tag command without any pre-configured scope.",
           "type": "string",
           "const": "deny-crm-upsert-tag",
           "markdownDescription": "Denies the crm_upsert_tag command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_upsert_task command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-upsert-task",
+          "markdownDescription": "Denies the crm_upsert_task command without any pre-configured scope."
         },
         {
           "description": "Denies the crm_upsert_template command without any pre-configured scope.",

@@ -4,8 +4,12 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
-### Fixed — startup
+### Fixed — startup & layout
 
+- **Full-screen CRM now works.** Expanding the drawer renders it as a real
+  full-window overlay (it used to overflow past the account dock and sit behind
+  the native WhatsApp webview). The WhatsApp webview is hidden while the CRM is
+  full-screen and restored when it collapses; `Esc` collapses it.
 - **The application could not start at all.** The Tauri updater plugin was
   registered without a `plugins.updater` configuration section, so plugin
   initialization panicked before the window was created — clicking the icon did
@@ -42,6 +46,12 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **LiteCRM (Tier 1)**: deals with value, currency, probability and expected
+  close date; custom pipelines and stages; a drag-and-drop deal board with
+  column totals; contact timeline; custom contact fields; unified tasks with
+  Today/Upcoming/Overdue views and desktop notifications; pipeline reports
+  (open/won value, win rate, average deal, overdue tasks); and a Do-Not-Contact
+  warning before opening a chat or inserting a draft.
 - Session health reporting: the account dock shows an amber dot when WhatsApp
   has logged the device out, so it is clear that a QR re-scan is needed.
 - **Encrypted, portable backups** (Settings → Data): AES-256-GCM with an

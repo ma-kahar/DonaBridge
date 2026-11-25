@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-report"
+description = "Enables the crm_report command without any pre-configured scope."
+commands.allow = ["crm_report"]
+
+[[permission]]
+identifier = "deny-crm-report"
+description = "Denies the crm_report command without any pre-configured scope."
+commands.deny = ["crm_report"]

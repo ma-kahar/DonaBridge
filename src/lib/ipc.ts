@@ -234,6 +234,217 @@ export async function crmImportCsv(accountId: string, csvText: string): Promise<
   return invoke<number>("crm_import_csv", { accountId, csvText });
 }
 
+// ── LiteCRM IPC: pipelines, deals, fields, tasks, timeline, reports ──────────
+
+export interface PipelineDto {
+  id: string;
+  name: string;
+  is_default: boolean;
+  sort_order: number;
+}
+
+export interface PipelineStageDto {
+  id: string;
+  pipeline_id: string;
+  name: string;
+  color: string;
+  sort_order: number;
+  wip_limit: number;
+  is_won: boolean;
+  is_lost: boolean;
+}
+
+export interface PipelineWithStagesDto {
+  pipeline: PipelineDto;
+  stages: PipelineStageDto[];
+}
+
+export interface DealDto {
+  id: string;
+  account_id: string;
+  contact_id?: string | null;
+  pipeline_id: string;
+  stage_id: string;
+  title: string;
+  value: number;
+  currency: string;
+  probability: number;
+  expected_close?: string | null;
+  owner?: string | null;
+  status: string;
+  lost_reason?: string | null;
+  sort_order: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface CustomFieldDto {
+  id: string;
+  account_id?: string | null;
+  name: string;
+  field_type: string;
+  options?: string | null;
+  sort_order: number;
+}
+
+export interface ContactFieldValueDto {
+  field_id: string;
+  value: string;
+}
+
+export interface CrmTaskDto {
+  id: string;
+  account_id: string;
+  contact_id?: string | null;
+  deal_id?: string | null;
+  title: string;
+  notes?: string | null;
+  due_at?: string | null;
+  priority: string;
+  status: string;
+  notified: boolean;
+  completed_at?: string | null;
+  created_at?: string | null;
+}
+
+export interface TimelineEntryDto {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  at?: string | null;
+}
+
+export interface StageReportDto {
+  stage_id: string;
+  name: string;
+  color: string;
+  count: number;
+  value: number;
+}
+
+export interface CrmReportDto {
+  pipeline_id: string;
+  pipeline_name: string;
+  currency: string;
+  stages: StageReportDto[];
+  open_count: number;
+  open_value: number;
+  won_count: number;
+  won_value: number;
+  lost_count: number;
+  lost_value: number;
+  win_rate: number;
+  avg_deal_value: number;
+  open_tasks: number;
+  overdue_tasks: number;
+  deals_last_30_days: number;
+  won_last_30_days: number;
+}
+
+export async function crmListPipelines(): Promise<PipelineWithStagesDto[]> {
+  if (!isTauri()) return [];
+  return invoke<PipelineWithStagesDto[]>("crm_list_pipelines");
+}
+
+export async function crmUpsertPipeline(pipeline: PipelineDto): Promise<PipelineDto> {
+  if (!isTauri()) return pipeline;
+  return invoke<PipelineDto>("crm_upsert_pipeline", { pipeline });
+}
+
+export async function crmDeletePipeline(id: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("crm_delete_pipeline", { id });
+}
+
+export async function crmUpsertStage(stage: PipelineStageDto): Promise<PipelineStageDto> {
+  if (!isTauri()) return stage;
+  return invoke<PipelineStageDto>("crm_upsert_stage", { stage });
+}
+
+export async function crmDeleteStage(id: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("crm_delete_stage", { id });
+}
+
+export async function crmListDeals(accountId: string, pipelineId: string): Promise<DealDto[]> {
+  if (!isTauri()) return [];
+  return invoke<DealDto[]>("crm_list_deals", { accountId, pipelineId });
+}
+
+export async function crmUpsertDeal(deal: DealDto): Promise<DealDto> {
+  if (!isTauri()) return deal;
+  return invoke<DealDto>("crm_upsert_deal", { deal });
+}
+
+export async function crmMoveDeal(
+  id: string,
+  stageId: string,
+  sortOrder: number
+): Promise<DealDto> {
+  if (!isTauri()) throw new Error("Deals are only available in the desktop app");
+  return invoke<DealDto>("crm_move_deal", { id, stageId, sortOrder });
+}
+
+export async function crmDeleteDeal(id: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("crm_delete_deal", { id });
+}
+
+export async function crmListCustomFields(accountId: string): Promise<CustomFieldDto[]> {
+  if (!isTauri()) return [];
+  return invoke<CustomFieldDto[]>("crm_list_custom_fields", { accountId });
+}
+
+export async function crmUpsertCustomField(field: CustomFieldDto): Promise<CustomFieldDto> {
+  if (!isTauri()) return field;
+  return invoke<CustomFieldDto>("crm_upsert_custom_field", { field });
+}
+
+export async function crmDeleteCustomField(id: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("crm_delete_custom_field", { id });
+}
+
+export async function crmGetContactFields(contactId: string): Promise<ContactFieldValueDto[]> {
+  if (!isTauri()) return [];
+  return invoke<ContactFieldValueDto[]>("crm_get_contact_fields", { contactId });
+}
+
+export async function crmSetContactField(
+  contactId: string,
+  fieldId: string,
+  value: string
+): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("crm_set_contact_field", { contactId, fieldId, value });
+}
+
+export async function crmListTasks(accountId: string): Promise<CrmTaskDto[]> {
+  if (!isTauri()) return [];
+  return invoke<CrmTaskDto[]>("crm_list_tasks", { accountId });
+}
+
+export async function crmUpsertTask(task: CrmTaskDto): Promise<CrmTaskDto> {
+  if (!isTauri()) return task;
+  return invoke<CrmTaskDto>("crm_upsert_task", { task });
+}
+
+export async function crmDeleteTask(id: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("crm_delete_task", { id });
+}
+
+export async function crmContactTimeline(contactId: string): Promise<TimelineEntryDto[]> {
+  if (!isTauri()) return [];
+  return invoke<TimelineEntryDto[]>("crm_contact_timeline", { contactId });
+}
+
+export async function crmReport(accountId: string, pipelineId: string): Promise<CrmReportDto> {
+  if (!isTauri()) throw new Error("Reports are only available in the desktop app");
+  return invoke<CrmReportDto>("crm_report", { accountId, pipelineId });
+}
+
 // ── Security & Secrets IPC ───────────────────────────────────────────────────
 
 export interface LockStatus {

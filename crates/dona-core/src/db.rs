@@ -20,7 +20,7 @@ static DB: OnceLock<Mutex<Connection>> = OnceLock::new();
 const DB_SIDECARS: [&str; 3] = ["dona.db", "dona.db-wal", "dona.db-shm"];
 
 /// Kept in sync with the number of migrations below.
-pub const LATEST_SCHEMA_VERSION: i64 = 2;
+pub const LATEST_SCHEMA_VERSION: i64 = 3;
 
 /// Marker file written before a restore; applied on the next startup.
 const RESTORE_MARKER: &str = "restore.pending";
@@ -32,6 +32,8 @@ fn migrations() -> Migrations<'static> {
         M::up(include_str!("migrations/001_initial.sql")),
         // M002: account group colours
         M::up(include_str!("migrations/002_account_group_color.sql")),
+        // M003: LiteCRM pipelines, deals, custom fields, tasks, activity
+        M::up(include_str!("migrations/003_crm_lite.sql")),
     ])
 }
 

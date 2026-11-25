@@ -277,6 +277,7 @@ mod tests {
         let migrations = Migrations::new(vec![
             M::up(include_str!("migrations/001_initial.sql")),
             M::up(include_str!("migrations/002_account_group_color.sql")),
+            M::up(include_str!("migrations/003_crm_lite.sql")),
         ]);
         migrations.to_latest(&mut conn).expect("migrate");
         conn

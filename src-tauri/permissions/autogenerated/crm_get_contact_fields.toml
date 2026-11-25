@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-get-contact-fields"
+description = "Enables the crm_get_contact_fields command without any pre-configured scope."
+commands.allow = ["crm_get_contact_fields"]
+
+[[permission]]
+identifier = "deny-crm-get-contact-fields"
+description = "Denies the crm_get_contact_fields command without any pre-configured scope."
+commands.deny = ["crm_get_contact_fields"]

@@ -108,6 +108,167 @@ pub struct Template {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Pipeline {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub is_default: bool,
+    #[serde(default)]
+    pub sort_order: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PipelineStage {
+    pub id: String,
+    pub pipeline_id: String,
+    pub name: String,
+    #[serde(default)]
+    pub color: String,
+    #[serde(default)]
+    pub sort_order: i32,
+    #[serde(default)]
+    pub wip_limit: i32,
+    #[serde(default)]
+    pub is_won: bool,
+    #[serde(default)]
+    pub is_lost: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PipelineWithStages {
+    pub pipeline: Pipeline,
+    pub stages: Vec<PipelineStage>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Deal {
+    pub id: String,
+    pub account_id: String,
+    #[serde(default)]
+    pub contact_id: Option<String>,
+    pub pipeline_id: String,
+    pub stage_id: String,
+    pub title: String,
+    #[serde(default)]
+    pub value: f64,
+    #[serde(default)]
+    pub currency: String,
+    #[serde(default)]
+    pub probability: i32,
+    #[serde(default)]
+    pub expected_close: Option<String>,
+    #[serde(default)]
+    pub owner: Option<String>,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub lost_reason: Option<String>,
+    #[serde(default)]
+    pub sort_order: i32,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CustomField {
+    pub id: String,
+    #[serde(default)]
+    pub account_id: Option<String>,
+    pub name: String,
+    #[serde(default)]
+    pub field_type: String,
+    #[serde(default)]
+    pub options: Option<String>,
+    #[serde(default)]
+    pub sort_order: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContactFieldValue {
+    pub field_id: String,
+    #[serde(default)]
+    pub value: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CrmTask {
+    pub id: String,
+    pub account_id: String,
+    #[serde(default)]
+    pub contact_id: Option<String>,
+    #[serde(default)]
+    pub deal_id: Option<String>,
+    pub title: String,
+    #[serde(default)]
+    pub notes: Option<String>,
+    #[serde(default)]
+    pub due_at: Option<String>,
+    #[serde(default)]
+    pub priority: String,
+    #[serde(default)]
+    pub status: String,
+    #[serde(default)]
+    pub notified: bool,
+    #[serde(default)]
+    pub completed_at: Option<String>,
+    pub created_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CrmActivity {
+    pub id: String,
+    pub account_id: String,
+    #[serde(default)]
+    pub contact_id: Option<String>,
+    #[serde(default)]
+    pub deal_id: Option<String>,
+    pub kind: String,
+    #[serde(default)]
+    pub body: String,
+    pub created_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct TimelineEntry {
+    pub id: String,
+    pub kind: String,
+    pub title: String,
+    #[serde(default)]
+    pub body: String,
+    #[serde(default)]
+    pub at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct StageReport {
+    pub stage_id: String,
+    pub name: String,
+    pub color: String,
+    pub count: i64,
+    pub value: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct CrmReport {
+    pub pipeline_id: String,
+    pub pipeline_name: String,
+    pub currency: String,
+    pub stages: Vec<StageReport>,
+    pub open_count: i64,
+    pub open_value: f64,
+    pub won_count: i64,
+    pub won_value: f64,
+    pub lost_count: i64,
+    pub lost_value: f64,
+    pub win_rate: f64,
+    pub avg_deal_value: f64,
+    pub open_tasks: i64,
+    pub overdue_tasks: i64,
+    pub deals_last_30_days: i64,
+    pub won_last_30_days: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct McpActivity {
     pub id: String,
     pub at: Option<DateTime<Utc>>,

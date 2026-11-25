@@ -37,8 +37,13 @@
 - **Privacy & App Lock:** Lock the entire app or individual accounts with a PIN or **Windows Hello**.
 
 ### 2. Built-in Lightweight CRM (`Ctrl+B`)
-Open the CRM drawer from the sidebar — or click the **Expand (`⛶`)** button in the CRM header to use it full-width.
+Open the CRM drawer from the sidebar — or click the **Expand (`⛶`)** button in the CRM header to use it full-width. Press `Esc` to return to the drawer.
 
+- **Deals pipeline (`Pipeline` tab):** create deals with value, currency, probability and expected close date. Custom pipelines and stages (colour, Won/Lost flags), drag deals between stages, column totals and pipeline value.
+- **Contact timeline & custom fields:** every contact detail has a chronological timeline (notes, stage changes, deals, tasks) and user-defined fields (text, number, date, select) for Company, City, Birthday, etc.
+- **Unified tasks (`Tasks` tab):** link tasks to a contact and deal, prioritise them and filter by Today / Upcoming / Overdue / Done. Due tasks raise desktop notifications.
+- **Reports (`Reports` tab):** open and won pipeline value, win rate, average deal size, open/overdue tasks and activity for the last 30 days, with a per-stage breakdown.
+- **Do-Not-Contact guard:** contacts in the `Do Not Contact` stage trigger a warning before opening a chat or inserting a template.
 - **Contacts & Pipeline:**
   - Add contacts with name & phone number, or import/export via **CSV**.
   - **Pin (`📌`)** important contacts to keep them at the top.

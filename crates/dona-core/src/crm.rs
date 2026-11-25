@@ -487,9 +487,13 @@ mod tests {
         let mut conn = Connection::open_in_memory().expect("open mem db");
         conn.execute_batch("PRAGMA foreign_keys=ON;")
             .expect("pragmas");
-        Migrations::new(vec![M::up(include_str!("migrations/001_initial.sql"))])
-            .to_latest(&mut conn)
-            .expect("migrate");
+        Migrations::new(vec![
+            M::up(include_str!("migrations/001_initial.sql")),
+            M::up(include_str!("migrations/002_account_group_color.sql")),
+            M::up(include_str!("migrations/003_crm_lite.sql")),
+        ])
+        .to_latest(&mut conn)
+        .expect("migrate");
 
         upsert_account(
             &conn,

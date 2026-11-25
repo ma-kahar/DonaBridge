@@ -58,9 +58,22 @@ export default function App() {
     void crmSetDrawerOpen(crmOpen);
   }, [crmOpen]);
 
-  // Hide native wa_* WebView2 child when any React modal/lock overlay is open
+  // Closing the CRM must also leave full-screen mode, otherwise the native
+  // WhatsApp webview would stay hidden behind a drawer that is no longer shown.
+  useEffect(() => {
+    if (!crmOpen) setCrmExpanded(false);
+  }, [crmOpen]);
+
+  // Hide native wa_* WebView2 child when any React modal/lock/full-screen CRM
+  // overlay is open. The WhatsApp session is a native child window and always
+  // paints above HTML, so it must be hidden while the CRM is full-screen.
   const overlayOpen =
-    addOpen || settingsOpen || locked || pendingUnlockAccount !== null || paletteOpen;
+    addOpen ||
+    settingsOpen ||
+    locked ||
+    pendingUnlockAccount !== null ||
+    paletteOpen ||
+    crmExpanded;
   useEffect(() => {
     void setOverlayOpen(overlayOpen, activeAccountId);
   }, [overlayOpen, activeAccountId]);

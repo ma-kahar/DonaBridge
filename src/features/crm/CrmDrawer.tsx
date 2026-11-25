@@ -1,6 +1,9 @@
 import {
   ArrowLeft,
+  BarChart3,
   Bell,
+  Briefcase,
+  CheckSquare,
   Columns3,
   Copy,
   Download,
@@ -55,6 +58,10 @@ import {
 import { useAppStore } from "../../store";
 import CopilotPanel from "../copilot/CopilotPanel";
 import ProjectsPanel from "./ProjectsPanel";
+import ContactInsights from "./ContactInsights";
+import DealsPanel from "./DealsPanel";
+import ReportsPanel from "./ReportsPanel";
+import TasksPanel from "./TasksPanel";
 import EmojiPickerPopover from "../../components/EmojiPickerPopover";
 import QuickReplyBar from "../../components/QuickReplyBar";
 import WaMessage from "../../components/WaMessage";
@@ -84,7 +91,16 @@ interface CrmDrawerProps {
   onToggleExpand: () => void;
 }
 
-type Tab = "contacts" | "projects" | "reminders" | "templates" | "quickreplies" | "copilot";
+type Tab =
+  | "contacts"
+  | "pipeline"
+  | "tasks"
+  | "reminders"
+  | "projects"
+  | "templates"
+  | "quickreplies"
+  | "reports"
+  | "copilot";
 
 export default function CrmDrawer({
   open,
@@ -154,6 +170,16 @@ export default function CrmDrawer({
       setContactTags(ct);
     });
   }, [selectedContact]);
+
+  // Escape collapses the full-screen CRM.
+  useEffect(() => {
+    if (!open || !expanded) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onToggleExpand();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, expanded, onToggleExpand]);
 
   if (!open) return null;
 
@@ -286,6 +312,12 @@ export default function CrmDrawer({
 
   async function handleInsertDraft(body: string) {
     if (!accountId) return;
+    if (selectedContact?.stage === "do_not_contact") {
+      const proceed = window.confirm(
+        "This contact is marked “Do Not Contact”. Inserting a message draft is allowed, but sending marketing messages to opted-out contacts breaks WhatsApp policy. Insert anyway?"
+      );
+      if (!proceed) return;
+    }
     const contactNameVal = selectedContact?.display_name || chatContext?.contact || "";
     const phoneVal = selectedContact?.phone_e164 || "";
     const dateVal = new Date().toLocaleDateString();
@@ -301,20 +333,32 @@ export default function CrmDrawer({
     setReminders((prev) => prev.map((r) => (r.id === reminder.id ? { ...r, status: "done" } : r)));
   }
 
-  async function handleOpenChat(phone_e164: string) {
+  async function handleOpenChat(phone_e164: string, target?: ContactDto) {
     if (!accountId) return;
+    const contact =
+      target ?? contacts.find((c) => c.phone_e164 === phone_e164) ?? selectedContact;
+    if (contact?.stage === "do_not_contact") {
+      const proceed = window.confirm(
+        "This contact is marked “Do Not Contact”.\n\nThe chat will open for reference only — do not send marketing or bulk messages. Continue?"
+      );
+      if (!proceed) return;
+    }
     await crmOpenChat(accountId, phone_e164);
   }
 
-  const widthClass = expanded ? "w-full" : "w-[340px]";
+  const widthClass = expanded ? "fixed inset-0 z-40 w-screen h-screen" : "w-[340px]";
 
   return (
     <aside
-      className={`${widthClass} shrink-0 h-full bg-dona-dark border-l border-dona-border flex flex-col transition-all duration-200`}
+      className={`${widthClass} shrink-0 h-full bg-dona-dark flex flex-col ${
+        expanded ? "" : "border-l border-dona-border transition-all duration-200"
+      }`}
     >
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-dona-border">
-        <h2 className="font-semibold text-white text-sm">{t("crm.title")}</h2>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-dona-border shrink-0">
+        <h2 className="font-semibold text-white text-sm">
+          {expanded ? "Dona CRM — full screen" : t("crm.title")}
+        </h2>
         <div className="flex items-center gap-1.5">
           {/* Light / Dark toggle */}
           <button
@@ -347,14 +391,17 @@ export default function CrmDrawer({
       </div>
 
       {/* ── Tabs ── */}
-      <div className="grid grid-cols-6 border-b border-dona-border text-[10px]">
+      <div className="flex border-b border-dona-border text-[10px] overflow-x-auto shrink-0">
         {(
           [
             { id: "contacts", icon: <Users className="w-3.5 h-3.5" />, label: t("crm.contacts") },
-            { id: "projects", icon: <FolderKanban className="w-3.5 h-3.5" />, label: "Projects" },
+            { id: "pipeline", icon: <Briefcase className="w-3.5 h-3.5" />, label: t("crm.pipeline") },
+            { id: "tasks", icon: <CheckSquare className="w-3.5 h-3.5" />, label: t("crm.tasks") },
             { id: "reminders", icon: <Bell className="w-3.5 h-3.5" />, label: t("crm.reminders") },
+            { id: "projects", icon: <FolderKanban className="w-3.5 h-3.5" />, label: "Projects" },
             { id: "templates", icon: <FileText className="w-3.5 h-3.5" />, label: t("crm.templates") },
             { id: "quickreplies", icon: <MessageSquare className="w-3.5 h-3.5" />, label: "Quick" },
+            { id: "reports", icon: <BarChart3 className="w-3.5 h-3.5" />, label: t("crm.reports") },
             { id: "copilot", icon: <Sparkles className="w-3.5 h-3.5" />, label: t("copilot.title") },
           ] as { id: Tab; icon: React.ReactNode; label: string }[]
         ).map(({ id, icon, label }) => (
@@ -365,22 +412,28 @@ export default function CrmDrawer({
               setTab(id);
               if (id === "contacts") setSelectedContact(null);
             }}
-            className={`flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+            className={`flex-1 min-w-[58px] flex flex-col items-center justify-center gap-0.5 py-2 px-1 transition-colors ${
               tab === id
                 ? "text-white border-b-2 border-blue-500 bg-white/5"
                 : "text-gray-400 hover:text-white"
             }`}
           >
             {icon}
-            <span className="truncate max-w-full px-0.5">{label}</span>
+            <span className="truncate max-w-full">{label}</span>
           </button>
         ))}
       </div>
 
       {/* ── Content ── */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className={`flex-1 min-h-0 overflow-y-auto space-y-3 ${expanded ? "p-4" : "p-3"}`}>
         {!accountId ? (
           <p className="text-xs text-gray-500 text-center py-8">{t("accounts.selectAccount")}</p>
+        ) : tab === "pipeline" ? (
+          <DealsPanel accountId={accountId} contacts={contacts} expanded={expanded} />
+        ) : tab === "tasks" ? (
+          <TasksPanel accountId={accountId} contacts={contacts} />
+        ) : tab === "reports" ? (
+          <ReportsPanel accountId={accountId} />
         ) : tab === "copilot" ? (
           <CopilotPanel accountId={accountId} chatContext={chatContext} />
         ) : tab === "projects" ? (
@@ -415,7 +468,7 @@ export default function CrmDrawer({
                 {/* Open Chat inside app */}
                 <button
                   type="button"
-                  onClick={() => void handleOpenChat(selectedContact.phone_e164)}
+                  onClick={() => void handleOpenChat(selectedContact.phone_e164, selectedContact)}
                   className="text-emerald-400 hover:text-emerald-300 text-[11px] flex items-center gap-1 px-2 py-1 rounded bg-emerald-900/30 border border-emerald-800/50"
                   title="Open in WhatsApp"
                 >
@@ -434,6 +487,9 @@ export default function CrmDrawer({
                 ))}
               </select>
             </div>
+
+            {/* Custom fields + timeline */}
+            <ContactInsights accountId={accountId} contact={selectedContact} />
 
             {/* Tags */}
             <div className="space-y-1.5">
@@ -723,7 +779,7 @@ export default function CrmDrawer({
                         {/* Open chat inside app */}
                         <button
                           type="button"
-                          onClick={() => void handleOpenChat(c.phone_e164)}
+                          onClick={() => void handleOpenChat(c.phone_e164, c)}
                           className="text-emerald-400 hover:text-emerald-300"
                           title="Open Chat"
                         >

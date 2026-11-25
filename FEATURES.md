@@ -51,6 +51,14 @@
 | **Draft insertion** | ✅ | Insert templates as drafts (never auto-send) |
 | **Copy to clipboard** | ✅ | Copy template text |
 | **Emoji picker** | ✅ | Insert emojis in templates |
+| **Deals** | ✅ | Value, currency, probability, expected close, owner, lost reason |
+| **Custom pipelines** | ✅ | Multiple pipelines with user-defined stages, colours and Won/Lost flags |
+| **Deal board** | ✅ | Drag deals between stages, column totals, pipeline value |
+| **Contact timeline** | ✅ | Notes, stage changes, deals and tasks in one feed |
+| **Custom fields** | ✅ | Text, number, date and select fields per contact |
+| **Unified tasks** | ✅ | Contact/deal links, priorities, Today/Upcoming/Overdue, notifications |
+| **Pipeline reports** | ✅ | Open/won value, win rate, average deal, overloaded stages, overdue tasks |
+| **DNC guard** | ✅ | Warning before opening a chat or inserting a draft for opted-out contacts |
 
 ### 3. AI Writing Assistant (10 features)
 

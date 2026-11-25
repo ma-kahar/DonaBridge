@@ -10,6 +10,12 @@
 > configuration documented in `docs/UPDATES.md`), **B1** (drag-to-reorder and
 > colour-coded account groups), **B2** (`Ctrl+K` command palette), and an
 > auto-start toggle in Settings (launches minimised to the tray).
+>
+> **LiteCRM Tier 1 is also implemented:** deals (value/currency/probability/
+> close date/lost reason), custom pipelines and stages, a drag-and-drop deal
+> board with totals, contact timeline, custom contact fields, unified tasks with
+> desktop notifications, pipeline reports, the Do-Not-Contact guard, and the
+> full-screen CRM fix. See the `Pipeline`, `Tasks` and `Reports` tabs.
 
 ---
 

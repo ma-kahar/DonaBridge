@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-list-tasks"
+description = "Enables the crm_list_tasks command without any pre-configured scope."
+commands.allow = ["crm_list_tasks"]
+
+[[permission]]
+identifier = "deny-crm-list-tasks"
+description = "Denies the crm_list_tasks command without any pre-configured scope."
+commands.deny = ["crm_list_tasks"]

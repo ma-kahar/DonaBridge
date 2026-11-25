@@ -94,6 +94,25 @@ pub fn run() {
             commands::crm::crm_assign_tag,
             commands::crm::crm_remove_tag,
             commands::crm::crm_import_csv,
+            commands::crm_ext::crm_list_pipelines,
+            commands::crm_ext::crm_upsert_pipeline,
+            commands::crm_ext::crm_delete_pipeline,
+            commands::crm_ext::crm_upsert_stage,
+            commands::crm_ext::crm_delete_stage,
+            commands::crm_ext::crm_list_deals,
+            commands::crm_ext::crm_upsert_deal,
+            commands::crm_ext::crm_move_deal,
+            commands::crm_ext::crm_delete_deal,
+            commands::crm_ext::crm_list_custom_fields,
+            commands::crm_ext::crm_upsert_custom_field,
+            commands::crm_ext::crm_delete_custom_field,
+            commands::crm_ext::crm_get_contact_fields,
+            commands::crm_ext::crm_set_contact_field,
+            commands::crm_ext::crm_list_tasks,
+            commands::crm_ext::crm_upsert_task,
+            commands::crm_ext::crm_delete_task,
+            commands::crm_ext::crm_contact_timeline,
+            commands::crm_ext::crm_report,
             commands::security::security_lock_status,
             commands::security::security_set_pin,
             commands::security::security_clear_pin,
@@ -169,10 +188,14 @@ pub fn run() {
                     interval.tick().await;
                     // Use try_lock() so the background timer never blocks Tauri commands
                     // that are concurrently trying to acquire the same DB mutex.
-                    let due = {
+                    let (due, due_tasks) = {
                         match dona_core::db::get().try_lock() {
-                            Some(conn) => dona_core::crm::due_reminders(&conn, chrono::Utc::now())
-                                .unwrap_or_default(),
+                            Some(conn) => (
+                                dona_core::crm::due_reminders(&conn, chrono::Utc::now())
+                                    .unwrap_or_default(),
+                                dona_core::crm_ext::due_tasks(&conn, chrono::Utc::now())
+                                    .unwrap_or_default(),
+                            ),
                             None => continue, // DB busy — skip this tick, try again in 30s
                         }
                     };
@@ -191,6 +214,17 @@ pub fn run() {
                         // Also use try_lock here — skip update if DB is momentarily busy
                         if let Some(conn) = dona_core::db::get().try_lock() {
                             let _ = dona_core::crm::upsert_reminder(&conn, &rem);
+                        }
+                    }
+                    for task in due_tasks {
+                        let _ = app_handle
+                            .notification()
+                            .builder()
+                            .title("Dona Bridge · Task due")
+                            .body(task.title.clone())
+                            .show();
+                        if let Some(conn) = dona_core::db::get().try_lock() {
+                            let _ = dona_core::crm_ext::mark_task_notified(&conn, &task.id);
                         }
                     }
                 }

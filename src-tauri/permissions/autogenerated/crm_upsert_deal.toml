@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-upsert-deal"
+description = "Enables the crm_upsert_deal command without any pre-configured scope."
+commands.allow = ["crm_upsert_deal"]
+
+[[permission]]
+identifier = "deny-crm-upsert-deal"
+description = "Denies the crm_upsert_deal command without any pre-configured scope."
+commands.deny = ["crm_upsert_deal"]
