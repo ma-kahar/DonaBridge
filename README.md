@@ -1,61 +1,87 @@
-# Dona Bridge
+<div align="center">
+  <img src="src-tauri/icons/128x128.png" alt="Dona Bridge Logo" width="96" height="96" />
+  <h1>Dona Bridge</h1>
+  <p><strong>A fast, lightweight, privacy-first multi-account WhatsApp Web desktop client for Windows with a built-in CRM &amp; Draft-Only AI Copilot.</strong></p>
 
-**Dona Bridge** is a fast, lightweight, privacy-first multi-account **WhatsApp Web** desktop client for Windows, built with Tauri, React, TypeScript, and Rust.
+  <p>
+    <a href="https://github.com/ma-kahar/DonaBridge/releases/latest">
+      <img src="https://img.shields.io/github/v/release/ma-kahar/DonaBridge?style=for-the-badge&color=25D366&label=Download%20Installer" alt="Download Installer" />
+    </a>
+    <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20(x64)-0078D6?style=for-the-badge" alt="Platform Windows" />
+    <img src="https://img.shields.io/badge/Built%20With-Tauri%20v2%20%2B%20React-24C8DB?style=for-the-badge" alt="Tauri v2" />
+  </p>
+</div>
 
 > **Disclaimer:** Dona Bridge is an independent desktop wrapper around official WhatsApp Web (`https://web.whatsapp.com`). It is **not affiliated with, endorsed by, or connected to WhatsApp LLC or Meta Platforms, Inc.**
 
 ---
 
-## ✨ Key Features
+## 📥 Download & Install (Windows)
 
-- **Multi-Account Workspace**
-  - Run multiple WhatsApp Web accounts side-by-side with isolated sessions (`WebView2` profiles).
-  - Custom account colors, categories, unread badges, and per-account or app-wide PIN / Windows Hello lock.
-  - Quiet Hours (DND) schedule per account.
+1. Go to the [**Latest Release**](https://github.com/ma-kahar/DonaBridge/releases/latest) page.
+2. Download **`Dona Bridge_0.1.0_x64-setup.exe`**.
+3. Run the installer and launch **Dona Bridge**.
+   - **Safe Upgrades:** Installing a newer version over an older one **keeps all your existing accounts, sessions, and CRM data intact**.
+   - **Clean Uninstall:** Uninstalling asks whether you also want to remove local app data.
 
-- **Built-in Lightweight CRM**
-  - **Contacts & Pipeline:** Add, search, pin (`📌`), tag, and organize contacts in List or drag-and-drop **Kanban** view.
-  - **In-App Chat Launch:** Open any contact's chat directly inside the app's active WhatsApp Web view.
-  - **Projects & Tasks:** Track client projects with progress bars, categories, priority/importance levels, drag-and-drop Kanban, and desktop task due reminders.
-  - **Follow-up Reminders:** Schedule reminders linked to contacts or general tasks with desktop notifications.
-  - **Templates & Quick Replies:** Reusable message templates with WhatsApp formatting (`*bold*`, `_italic_`, `~strike~`, `` `code` ``), emoji picker, and vertical quick-reply chips.
-  - **CSV & JSON Backup:** Import/export contacts via CSV and back up/restore workspace data via JSON.
+---
 
-- **Draft-Only AI Copilot (Optional)**
-  - Supports local models (**Ollama**) or your own API key (**OpenAI**, **Anthropic**, **DeepSeek**, **Kimi**, **OpenRouter**, or custom OpenAI-compatible endpoints).
-  - **Strict Draft-Only Policy:** AI suggestions only insert text into the composer box — **Dona Bridge never automatically sends messages or clicks Send.**
+## ✨ Detailed Features Guide
 
-- **Modern UI**
-  - Expandable CRM drawer (sidebar or full-width).
-  - **Dark Mode** and **Light Mode** toggle.
-  - Multi-language support (English, Bengali, French).
+### 1. Multi-Account Workspace
+- **Isolated Sessions:** Run multiple WhatsApp accounts (Personal, Work, Support, Sales) side-by-side. Each account uses its own isolated `WebView2` profile.
+- **Account Dock:** Switch accounts in one click (or with `Ctrl+1` .. `Ctrl+9`), customize account colors/categories, mute notifications, and see live unread counts.
+- **Quiet Hours (DND):** Set per-account Do Not Disturb schedules in **Settings**.
+- **Privacy & App Lock:** Lock the entire app or individual accounts with a PIN or **Windows Hello**.
+
+### 2. Built-in Lightweight CRM (`Ctrl+B`)
+Open the CRM drawer from the sidebar — or click the **Expand (`⛶`)** button in the CRM header to use it full-width.
+
+- **Contacts & Pipeline:**
+  - Add contacts with name & phone number, or import/export via **CSV**.
+  - **Pin (`📌`)** important contacts to keep them at the top.
+  - **Search & Tag Filter:** Filter contacts by name, phone, or custom tags.
+  - **List & Drag-and-Drop Kanban:** Switch between List view and Kanban columns (`New`, `Follow Up`, `Negotiating`, `Won`, `Do Not Contact`) and drag cards between stages.
+  - **In-App Chat Launch (`💬`):** Clicking **Open Chat** opens the contact directly inside the app's active WhatsApp Web view (never in an external browser).
+- **Projects & Tasks:**
+  - Create client-linked projects with categories, due dates, and automatic progress bars.
+  - Add tasks with **Priority** (`Low`, `Med`, `High`), **Importance** (`Normal`, `⭐ Important`, `🔥 Urgent`), and **Due Date/Time** for desktop reminder notifications.
+  - **Drag-and-Drop Kanban:** Move projects across `Active`, `On Hold`, and `Done`.
+- **Follow-up Reminders:**
+  - Create contact-linked or general reminders with date/time and receive desktop notifications.
+- **Templates & Quick Replies:**
+  - Create reusable message templates with WhatsApp formatting (`*bold*`, `_italic_`, `~strike~`, `` `code` ``), emoji picker, and live preview.
+  - **Vertical Quick Replies:** One-click color-coded chips that insert text directly into the WhatsApp composer.
+- **Backup & Restore:**
+  - Export and import your CRM workspace data (projects, tasks, quick replies, pinned contacts, theme) as a **JSON** file from **Settings → Security & Backup**.
+
+### 3. Draft-Only AI Copilot (Optional)
+- Supports **Ollama** (100% offline/local) as well as **OpenAI**, **Anthropic**, **DeepSeek**, **Kimi**, **OpenRouter**, or any custom OpenAI-compatible API.
+- **Strict Draft-Only Policy:** AI suggestions only insert text into the WhatsApp message box — **Dona Bridge never automatically sends messages or clicks Send.**
+
+### 4. Themes & Languages
+- Toggle between **Dark Mode** and **Light Mode** anytime from the CRM header (`☀️` / `🌙`).
+- Available in **English**, **বাংলা (Bengali)**, and **Français (French)**.
 
 ---
 
 ## 🛡️ WhatsApp Policy & Safety Compliance
 
-Dona Bridge is designed to respect WhatsApp's Terms of Service:
-1. **Official Web Client Only:** Uses the official `https://web.whatsapp.com` interface inside isolated WebView2 containers — no unofficial protocol reverse-engineering.
-2. **No Automation / No Bulk Sending:** There is no auto-responder, bulk broadcaster, or automated message sender. Every message is reviewed and sent manually by you.
-3. **100% Local Data:** Your contacts, notes, projects, and credentials stay on your own device (SQLite + OS Credential Manager).
+Dona Bridge is built to respect WhatsApp's Terms of Service:
+1. **Official Web Client Only:** Loads `https://web.whatsapp.com` inside standard WebView2 containers — no unofficial protocol reverse-engineering.
+2. **No Automation / No Bulk Sending:** No auto-responder, no bulk broadcaster, and no automated message sending. Every message is reviewed and sent manually by you.
+3. **100% Local Storage:** Contacts, notes, projects, and API keys stay on your device (SQLite + Windows Credential Manager).
 
 ---
 
-## 🚀 Getting Started
+## 🛠️ Build from Source (Developers)
 
-### For Users (Windows Installer)
-1. Download the latest `Dona Bridge_x.x.x_x64-setup.exe` from the **Releases** page.
-2. Run the installer. Upgrading to a newer version preserves your existing accounts and CRM data.
-3. Click **+ Add Account**, give it a name, and scan the WhatsApp Web QR code.
-
-### For Developers (Build from Source)
-
-#### Prerequisites
+### Prerequisites
 - [Node.js](https://nodejs.org/) (v20+) & `pnpm`
 - [Rust](https://www.rust-lang.org/tools/install) (stable MSVC toolchain on Windows)
-- WebView2 Runtime (pre-installed on Windows 10/11)
+- Microsoft Edge WebView2 Runtime (pre-installed on Windows 10/11)
 
-#### Commands
+### Commands
 ```bash
 # Install dependencies
 pnpm install
