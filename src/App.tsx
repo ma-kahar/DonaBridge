@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { AlertTriangle, Lock, Plus, RefreshCw } from "lucide-react";
+import { AlertTriangle, Lock, PanelLeftOpen, Plus, RefreshCw } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AccountDock from "./features/accounts/AccountDock";
@@ -8,6 +8,7 @@ import CrmDrawer from "./features/crm/CrmDrawer";
 import LockScreen from "./features/lock/LockScreen";
 import SettingsModal from "./features/settings/SettingsModal";
 import CommandPalette from "./components/CommandPalette";
+import AppTaskbar from "./components/AppTaskbar";
 import {
   accountVerifyPin,
   aiReadActiveChat,
@@ -18,6 +19,7 @@ import {
   prewarmAccounts,
   securityLockApp,
   securityLockStatus,
+  setDockCollapsed,
   setOverlayOpen,
   switchAccount,
 } from "./lib/ipc";
@@ -38,6 +40,9 @@ export default function App() {
   } = useAppStore();
   const [reloadNonce, setReloadNonce] = useState(0);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [dockCollapsed, setDockCollapsedState] = useState(
+    () => typeof localStorage !== "undefined" && localStorage.getItem("dona_dock_collapsed") === "1"
+  );
   const lastAutoReadRef = useRef(0);
   const [addOpen, setAddOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -59,6 +64,14 @@ export default function App() {
   useEffect(() => {
     void crmSetDrawerOpen(crmOpen);
   }, [crmOpen]);
+
+  // Persist the account dock state and tell Rust how much width to reserve.
+  useEffect(() => {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("dona_dock_collapsed", dockCollapsed ? "1" : "0");
+    }
+    void setDockCollapsed(dockCollapsed);
+  }, [dockCollapsed]);
 
   // Closing the CRM must also leave full-screen mode, otherwise the native
   // WhatsApp webview would stay hidden behind a drawer that is no longer shown.
@@ -278,27 +291,34 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-dona-dark text-white overflow-hidden">
-      {/* Left sidebar — account dock */}
-      <AccountDock
-        onSelectAccount={handleSelectAccount}
-        onEditAccount={(acc) => {
-          setEditingAccount(acc);
-          setAddOpen(true);
-        }}
-        onAddClick={() => {
-          setEditingAccount(null);
-          setAddOpen(true);
-        }}
-        onToggleCrm={() => setCrmOpen((prev) => !prev)}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onOpenPalette={() => setPaletteOpen(true)}
-        onLockApp={() => void handleLockApp()}
-        crmOpen={crmOpen}
-      />
+    <div className="flex flex-col h-screen bg-dona-dark text-white overflow-hidden">
+      <div className="flex flex-1 min-h-0">
+        {/* Left sidebar — account dock (hideable) */}
+        {dockCollapsed ? (
+          <aside className="w-3 shrink-0 h-full bg-dona-dark border-r border-dona-border flex flex-col items-center pt-2">
+            <button
+              type="button"
+              onClick={() => setDockCollapsedState(false)}
+              className="text-gray-500 hover:text-white transition-colors"
+              title={t("accounts.showDock")}
+              aria-label={t("accounts.showDock")}
+            >
+              <PanelLeftOpen className="w-2.5 h-2.5" />
+            </button>
+          </aside>
+        ) : (
+          <AccountDock
+            onSelectAccount={handleSelectAccount}
+            onEditAccount={(acc) => {
+              setEditingAccount(acc);
+              setAddOpen(true);
+            }}
+            onMinimize={() => setDockCollapsedState(true)}
+          />
+        )}
 
-      {/* Main area — WhatsApp webview renders over this region when an account is active */}
-      <main className="flex-1 flex items-center justify-center bg-dona-panel">
+        {/* Main area — WhatsApp webview renders over this region when an account is active */}
+        <main className="flex-1 flex items-center justify-center bg-dona-panel">
         {accounts.length === 0 && accountsStatus === "loading" ? (
           <div className="text-center space-y-4">
             <div className="w-7 h-7 mx-auto rounded-full border-2 border-white/15 border-t-blue-400 animate-spin" />
@@ -361,6 +381,23 @@ export default function App() {
         onClose={() => setCrmOpen(false)}
         expanded={crmExpanded}
         onToggleExpand={() => setCrmExpanded((prev) => !prev)}
+      />
+      </div>
+
+      {/* Bottom application taskbar */}
+      <AppTaskbar
+        dockCollapsed={dockCollapsed}
+        onToggleDock={() => setDockCollapsedState((v) => !v)}
+        crmOpen={crmOpen}
+        onToggleCrm={() => setCrmOpen((prev) => !prev)}
+        onOpenPalette={() => setPaletteOpen(true)}
+        onAddAccount={() => {
+          setEditingAccount(null);
+          setAddOpen(true);
+        }}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onLockApp={() => void handleLockApp()}
+        onSelectAccount={handleSelectAccount}
       />
 
       <AddAccountModal

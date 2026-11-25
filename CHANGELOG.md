@@ -54,6 +54,14 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
   warning before opening a chat or inserting a draft.
 - **Bottom CRM navigation**: the CRM sections now sit in an icon + text bar at
   the bottom of the drawer (3×3 grid) and across the bottom in full-screen mode.
+- **Hideable account bar + application taskbar**: minimise the left account dock
+  to a slim rail. A Windows-style taskbar at the bottom of the app now holds the
+  account switcher, CRM, search, add account, lock and settings.
+- **Right-side contact properties**: in full-screen CRM the contact list stays in
+  the main area and the selected contact's details, fields, timeline and actions
+  appear in a right-hand inspector.
+- **Account-aware AI drafts**: replies are generated on behalf of the current
+  account and signed with that account's name — never “Dona Bridge”.
 - **Auto-read the open chat (opt-in)**: when a new message arrives in the chat
   you already have open, Dona Bridge reloads its last 20 messages so the Copilot
   can prepare a draft. It never reads background chats, never marks messages as

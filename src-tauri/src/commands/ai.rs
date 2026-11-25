@@ -261,6 +261,7 @@ pub async fn ai_read_active_chat(app: AppHandle, account_id: String) -> Result<(
 /// Generate a draft reply using the currently active AI profile. Never sends anything.
 #[tauri::command]
 pub async fn ai_suggest_reply(
+    account_id: String,
     contact: String,
     messages: Vec<String>,
     tone: String,
@@ -280,9 +281,24 @@ pub async fn ai_suggest_reply(
         return Err("CLOUD_CONSENT_REQUIRED".to_string());
     }
 
+    // Sign drafts as the WhatsApp account the user is writing from, never as
+    // the application name.
+    let account_name = {
+        let conn = dona_core::db::get().lock();
+        dona_core::accounts::get_account(&conn, &account_id)
+            .ok()
+            .flatten()
+            .map(|a| a.name)
+            .filter(|name| !name.trim().is_empty())
+            .unwrap_or_else(|| "this account".to_string())
+    };
+
     let system_prompt = format!(
-        "You are a helpful messaging assistant for Dona Bridge. \
+        "You are a helpful messaging assistant drafting a WhatsApp reply on behalf of the \
+         account \"{account_name}\". \
          Draft a concise, polite reply in language '{language}' with a '{tone}' tone. \
+         Never mention or sign as \"Dona Bridge\", \"DonaBridge\" or any software name. \
+         If the reply needs a signature, use \"{account_name}\". \
          Return ONLY the reply text, with no quotes or preamble."
     );
 

@@ -30,7 +30,9 @@
     "categoryBusiness": "ব্যবসায়িক",
     "colorLabel": "ব্যাজের রঙ",
     "initialsLabel": "অক্ষর (সর্বোচ্চ ২টি)",
-    "uploadPhoto": "ছবি আপলোড"
+    "uploadPhoto": "ছবি আপলোড",
+    "minimizeDock": "অ্যাকাউন্ট বার ছোট করুন",
+    "showDock": "অ্যাকাউন্ট বার দেখান"
   },
   "settings": {
     "title": "সেটিংস",

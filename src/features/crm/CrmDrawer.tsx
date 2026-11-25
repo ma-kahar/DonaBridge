@@ -1,5 +1,4 @@
 import {
-  ArrowLeft,
   BarChart3,
   Bell,
   Briefcase,
@@ -21,7 +20,6 @@ import {
   SendHorizontal,
   Sparkles,
   Sun,
-  Tag,
   Trash2,
   Upload,
   Users,
@@ -31,42 +29,34 @@ import { type ChangeEvent, type FormEvent, useCallback, useEffect, useState } fr
 import { useTranslation } from "react-i18next";
 import {
   type ContactDto,
-  type NoteDto,
   type ReminderDto,
   type TagDto,
   type TemplateDto,
-  crmAddNote,
-  crmAssignTag,
   crmDeleteContact,
   crmDeleteTemplate,
   crmExportCsv,
   crmImportCsv,
   crmInsertDraft,
   crmOpenChat,
-  crmListContactTags,
   crmListContacts,
-  crmListNotes,
   crmListReminders,
   crmListTags,
   crmListTemplates,
-  crmRemoveTag,
   crmUpsertContact,
   crmUpsertReminder,
-  crmUpsertTag,
   crmUpsertTemplate,
 } from "../../lib/ipc";
 import { useAppStore } from "../../store";
 import CopilotPanel from "../copilot/CopilotPanel";
 import ProjectsPanel from "./ProjectsPanel";
-import ContactInsights from "./ContactInsights";
+import ContactDetailPanel from "./ContactDetailPanel";
 import DealsPanel from "./DealsPanel";
 import ReportsPanel from "./ReportsPanel";
 import TasksPanel from "./TasksPanel";
+import { CONTACT_STAGES } from "./stages";
 import EmojiPickerPopover from "../../components/EmojiPickerPopover";
 import QuickReplyBar from "../../components/QuickReplyBar";
 import WaMessage from "../../components/WaMessage";
-
-const STAGES = ["new", "follow_up", "negotiating", "won", "do_not_contact"] as const;
 
 type NavSection = "Workspace" | "Library" | "Insights";
 
@@ -126,14 +116,10 @@ export default function CrmDrawer({
   const [reminders, setReminders] = useState<ReminderDto[]>([]);
   const [templates, setTemplates] = useState<TemplateDto[]>([]);
   const [allTags, setAllTags] = useState<TagDto[]>([]);
-  const [contactTags, setContactTags] = useState<TagDto[]>([]);
-  const [notes, setNotes] = useState<NoteDto[]>([]);
   const [pinned, setPinned] = useState<Set<string>>(new Set());
 
   const [phone, setPhone] = useState("");
   const [contactName, setContactName] = useState("");
-  const [noteInput, setNoteInput] = useState("");
-  const [tagInput, setTagInput] = useState("");
   const [reminderNote, setReminderNote] = useState("");
   const [reminderDue, setReminderDue] = useState("");
   const [reminderContactId, setReminderContactId] = useState("");
@@ -162,17 +148,6 @@ export default function CrmDrawer({
       setPinned(loadPinned(accountId));
     }
   }, [open, accountId, refresh]);
-
-  useEffect(() => {
-    if (!selectedContact) return;
-    void Promise.all([
-      crmListNotes(selectedContact.id),
-      crmListContactTags(selectedContact.id),
-    ]).then(([n, ct]) => {
-      setNotes(n);
-      setContactTags(ct);
-    });
-  }, [selectedContact]);
 
   // Escape collapses the full-screen CRM.
   useEffect(() => {
@@ -261,56 +236,6 @@ export default function CrmDrawer({
     await crmImportCsv(accountId, text);
     await refresh();
     e.target.value = "";
-  }
-
-  async function handleAddNote(e: FormEvent) {
-    e.preventDefault();
-    if (!accountId || !selectedContact || !noteInput.trim()) return;
-    await crmAddNote(accountId, selectedContact.id, noteInput.trim());
-    setNoteInput("");
-    setNotes(await crmListNotes(selectedContact.id));
-  }
-
-  async function handleAddTag(e: FormEvent) {
-    e.preventDefault();
-    if (!selectedContact || !tagInput.trim()) return;
-    const tag = await crmUpsertTag({
-      id: "",
-      name: tagInput.trim(),
-      color: "#3B82F6",
-    });
-    await crmAssignTag(selectedContact.id, tag.id);
-    setTagInput("");
-    const [tags, ct] = await Promise.all([crmListTags(), crmListContactTags(selectedContact.id)]);
-    setAllTags(tags);
-    setContactTags(ct);
-  }
-
-  async function handleToggleTag(tag: TagDto) {
-    if (!selectedContact) return;
-    const assigned = contactTags.some((t) => t.id === tag.id);
-    if (assigned) {
-      await crmRemoveTag(selectedContact.id, tag.id);
-    } else {
-      await crmAssignTag(selectedContact.id, tag.id);
-    }
-    setContactTags(await crmListContactTags(selectedContact.id));
-  }
-
-  async function handleAddReminder(e: FormEvent) {
-    e.preventDefault();
-    if (!selectedContact || !reminderNote.trim()) return;
-    const dueIso = reminderDue ? new Date(reminderDue).toISOString() : new Date().toISOString();
-    await crmUpsertReminder({
-      id: "",
-      contact_id: selectedContact.id,
-      due_at: dueIso,
-      note: reminderNote.trim(),
-      status: "pending",
-    });
-    setReminderNote("");
-    setReminderDue("");
-    await refresh();
   }
 
   async function handleInsertDraft(body: string) {
@@ -486,154 +411,13 @@ export default function CrmDrawer({
             </p>
             <QuickReplyBar accountId={accountId} />
           </div>
-        ) : tab === "contacts" && selectedContact ? (
-          /* ── Contact Detail ── */
-          <div className={`space-y-3 ${expanded ? "max-w-3xl" : ""}`}>
-            <button
-              type="button"
-              onClick={() => setSelectedContact(null)}
-              className="inline-flex items-center gap-1 text-xs text-blue-400 hover:underline"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              {t("crm.back")}
-            </button>
-
-            <div className="rounded-lg bg-dona-panel border border-dona-border p-3 space-y-2">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-white">
-                    {selectedContact.display_name || selectedContact.phone_e164}
-                  </p>
-                  <p className="text-xs text-gray-400">{selectedContact.phone_e164}</p>
-                </div>
-                {/* Open Chat inside app */}
-                <button
-                  type="button"
-                  onClick={() => void handleOpenChat(selectedContact.phone_e164, selectedContact)}
-                  className="text-emerald-400 hover:text-emerald-300 text-[11px] flex items-center gap-1 px-2 py-1 rounded bg-emerald-900/30 border border-emerald-800/50"
-                  title="Open in WhatsApp"
-                >
-                  💬 Open Chat
-                </button>
-              </div>
-              <select
-                value={selectedContact.stage}
-                onChange={(e) => void handleStageChange(selectedContact, e.target.value)}
-                className="w-full rounded bg-dona-dark border border-dona-border px-2 py-1 text-xs text-gray-200"
-              >
-                {STAGES.map((s) => (
-                  <option key={s} value={s}>
-                    {t(`crm.stages.${s}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Custom fields + timeline */}
-            <ContactInsights accountId={accountId} contact={selectedContact} />
-
-            {/* Tags */}
-            <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-300 flex items-center gap-1">
-                <Tag className="w-3 h-3" /> {t("crm.tags")}
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {allTags.map((tag) => {
-                  const active = contactTags.some((ct) => ct.id === tag.id);
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => void handleToggleTag(tag)}
-                      className={`px-2 py-0.5 rounded-full text-[11px] border transition-colors ${
-                        active
-                          ? "bg-blue-600/30 border-blue-500 text-blue-200"
-                          : "bg-dona-panel border-dona-border text-gray-400"
-                      }`}
-                    >
-                      {tag.name}
-                    </button>
-                  );
-                })}
-              </div>
-              <form onSubmit={handleAddTag} className="flex gap-1.5">
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  placeholder={t("crm.addTagPlaceholder")}
-                  className="flex-1 rounded bg-dona-panel border border-dona-border px-2 py-1 text-xs text-white"
-                />
-                <button
-                  type="submit"
-                  className="px-2 py-1 rounded bg-blue-600 hover:bg-blue-500 text-xs text-white"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </form>
-            </div>
-
-            {/* Follow-up Reminder */}
-            <form
-              onSubmit={handleAddReminder}
-              className="space-y-1.5 border-t border-dona-border pt-2"
-            >
-              <p className="text-xs font-medium text-gray-300">{t("crm.addReminder")}</p>
-              <input
-                type="text"
-                value={reminderNote}
-                onChange={(e) => setReminderNote(e.target.value)}
-                placeholder={t("crm.notePlaceholder")}
-                className="w-full rounded bg-dona-panel border border-dona-border px-2 py-1 text-xs text-white"
-              />
-              <div className="flex gap-1.5">
-                <input
-                  type="datetime-local"
-                  value={reminderDue}
-                  onChange={(e) => setReminderDue(e.target.value)}
-                  className="flex-1 rounded bg-dona-panel border border-dona-border px-2 py-1 text-[11px] text-white"
-                />
-                <button
-                  type="submit"
-                  className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-xs text-white"
-                >
-                  <Bell className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </form>
-
-            {/* Notes */}
-            <div className="space-y-2 border-t border-dona-border pt-2">
-              <form onSubmit={handleAddNote} className="flex gap-1.5">
-                <input
-                  type="text"
-                  value={noteInput}
-                  onChange={(e) => setNoteInput(e.target.value)}
-                  placeholder={t("crm.notePlaceholder")}
-                  className="flex-1 rounded bg-dona-panel border border-dona-border px-2 py-1 text-xs text-white"
-                />
-                <button
-                  type="submit"
-                  className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-xs text-white"
-                  aria-label={t("crm.addNote")}
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </form>
-              <ul className="space-y-1.5">
-                {notes.map((n) => (
-                  <li
-                    key={n.id}
-                    className="rounded bg-dona-panel border border-dona-border p-2 text-xs text-gray-200"
-                  >
-                    {n.body}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
         ) : tab === "contacts" ? (
-          <>
+          <div
+            className={
+              expanded ? "grid grid-cols-[minmax(0,1fr)_380px] gap-4 items-start" : ""
+            }
+          >
+            <div className={expanded || !selectedContact ? "min-w-0 space-y-3" : "hidden"}>
             {/* Add Contact */}
             <form onSubmit={handleAddContact} className="space-y-2">
               <input
@@ -738,7 +522,7 @@ export default function CrmDrawer({
             ) : viewMode === "kanban" ? (
               /* Kanban by stage */
               <div className="space-y-3">
-                {STAGES.map((stage) => {
+                {CONTACT_STAGES.map((stage) => {
                   const stageContacts = filteredContacts.filter((c) => c.stage === stage);
                   return (
                     <div
@@ -861,7 +645,7 @@ export default function CrmDrawer({
                       onChange={(e) => void handleStageChange(c, e.target.value)}
                       className="w-full rounded bg-dona-dark border border-dona-border px-2 py-1 text-[11px] text-gray-200"
                     >
-                      {STAGES.map((s) => (
+                      {CONTACT_STAGES.map((s) => (
                         <option key={s} value={s}>
                           {t(`crm.stages.${s}`)}
                         </option>
@@ -871,7 +655,37 @@ export default function CrmDrawer({
                 ))}
               </ul>
             )}
-          </>
+            </div>
+            {(selectedContact || expanded) && (
+              <aside
+                className={
+                  expanded
+                    ? "sticky top-0 max-h-[calc(100vh-9rem)] overflow-y-auto rounded-xl border border-dona-border bg-dona-panel/20 p-3"
+                    : ""
+                }
+              >
+                {selectedContact ? (
+                  <ContactDetailPanel
+                    accountId={accountId}
+                    contact={selectedContact}
+                    allTags={allTags}
+                    onStageChange={(c, stage) => void handleStageChange(c, stage)}
+                    onOpenChat={(phone, c) => void handleOpenChat(phone, c)}
+                    onBack={expanded ? undefined : () => setSelectedContact(null)}
+                    onTagsChanged={setAllTags}
+                    onRefresh={refresh}
+                  />
+                ) : (
+                  <div className="text-center py-10 space-y-1">
+                    <p className="text-xs text-gray-400">Select a contact</p>
+                    <p className="text-[10px] text-gray-600">
+                      Details and properties appear here.
+                    </p>
+                  </div>
+                )}
+              </aside>
+            )}
+          </div>
         ) : tab === "reminders" ? (
           <div className="space-y-3">
             {/* Add Reminder form */}

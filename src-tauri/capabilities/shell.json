@@ -21,6 +21,7 @@
     "allow-account-verify-pin",
     "allow-account-clear-pin",
     "allow-set-overlay-open",
+    "allow-set-dock-collapsed",
     "allow-list-account-groups",
     "allow-upsert-account-group",
     "allow-delete-account-group",

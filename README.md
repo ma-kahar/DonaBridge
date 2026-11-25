@@ -30,7 +30,8 @@
 
 ### 1. Multi-Account Workspace
 - **Isolated Sessions:** Run multiple WhatsApp accounts (Personal, Work, Support, Sales) side-by-side. Each account uses its own isolated `WebView2` profile.
-- **Account Dock:** Switch accounts in one click (or with `Ctrl+1` .. `Ctrl+9`), customize account colors/categories, mute notifications, and see live unread counts.
+- **Account Dock:** Switch accounts in one click (or with `Ctrl+1` .. `Ctrl+9`), customize account colors/categories, mute notifications, and see live unread counts. Minimise the dock to a slim rail with the button at its bottom.
+- **Application taskbar:** a Windows-style bar at the bottom of the window with the account switcher, CRM, search, add account, lock and settings.
 - **Order & groups:** Drag accounts in the dock to reorder them. Create colour-coded groups in **Settings → Accounts** (Shop, Clients, Personal…) and assign an account to a group when you add or edit it.
 - **Command palette (`Ctrl+K`):** Jump to an account, contact, quick reply, project or action from one search box.
 - **Quiet Hours (DND):** Set per-account Do Not Disturb schedules in **Settings**.
@@ -67,6 +68,7 @@ Open the CRM drawer from the sidebar — or click the **Expand (`⛶`)** button 
 ### 3. Draft-Only AI Copilot (Optional)
 - Supports **Ollama** (100% offline/local) as well as **OpenAI**, **Anthropic**, **DeepSeek**, **Kimi**, **OpenRouter**, or any custom OpenAI-compatible API.
 - **Strict Draft-Only Policy:** AI suggestions only insert text into the WhatsApp message box — **Dona Bridge never automatically sends messages or clicks Send.**
+- **Signed per account:** drafts are prepared on behalf of the active account and signed with that account's name, never with the application name.
 - **Auto-read the open chat (opt-in):** with the eye toggle enabled in the Copilot tab, a new message in the chat you already have open reloads its last 20 messages so a draft can be prepared. It never reads a background chat, never changes read receipts, and never sends.
 
 ### 4. Themes & Languages

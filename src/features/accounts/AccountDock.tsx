@@ -12,7 +12,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Lock, PanelRightOpen, Plus, Search, Settings } from "lucide-react";
+import { Lock, PanelLeftClose } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { reorderAccounts } from "../../lib/ipc";
 import { type Account, useAppStore } from "../../store";
@@ -20,23 +20,13 @@ import { type Account, useAppStore } from "../../store";
 interface AccountDockProps {
   onSelectAccount: (account: Account) => void;
   onEditAccount: (account: Account) => void;
-  onAddClick: () => void;
-  onToggleCrm: () => void;
-  onOpenSettings: () => void;
-  onOpenPalette: () => void;
-  onLockApp: () => void;
-  crmOpen: boolean;
+  onMinimize: () => void;
 }
 
 export default function AccountDock({
   onSelectAccount,
   onEditAccount,
-  onAddClick,
-  onToggleCrm,
-  onOpenSettings,
-  onOpenPalette,
-  onLockApp,
-  crmOpen,
+  onMinimize,
 }: AccountDockProps) {
   const { t } = useTranslation();
   const { accounts, activeAccountId, groups, sessionStates, setAccounts } = useAppStore();
@@ -61,7 +51,7 @@ export default function AccountDock({
   }
 
   return (
-    <aside className="w-16 flex flex-col items-center py-3 gap-2 bg-dona-dark border-r border-dona-border shrink-0">
+    <aside className="w-16 flex flex-col items-center py-2 gap-2 bg-dona-dark border-r border-dona-border shrink-0">
       <div className="flex-1 min-h-0 w-full overflow-y-auto flex flex-col items-center gap-2 px-1">
         <DndContext
           sensors={sensors}
@@ -78,9 +68,7 @@ export default function AccountDock({
                 account={account}
                 isActive={account.id === activeAccountId}
                 loggedOut={sessionStates[account.id] === "logged_out"}
-                groupColor={
-                  groups.find((g) => g.id === account.groupId)?.color ?? null
-                }
+                groupColor={groups.find((g) => g.id === account.groupId)?.color ?? null}
                 groupName={groups.find((g) => g.id === account.groupId)?.name ?? null}
                 onClick={() => onSelectAccount(account)}
                 onContextMenu={(e) => {
@@ -93,63 +81,15 @@ export default function AccountDock({
         </DndContext>
       </div>
 
-      <div className="flex flex-col items-center gap-2 pt-1">
-        <button
-          onClick={onOpenPalette}
-          className="w-10 h-10 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"
-          title={`${t("palette.title")} (Ctrl+K)`}
-          aria-label={t("palette.title")}
-          type="button"
-        >
-          <Search className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={onToggleCrm}
-          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-            crmOpen
-              ? "bg-blue-600 text-white"
-              : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
-          }`}
-          title={t("crm.title")}
-          aria-label={t("crm.title")}
-          type="button"
-        >
-          <PanelRightOpen className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={onLockApp}
-          className="w-10 h-10 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"
-          title={t("lock.lockNow")}
-          aria-label={t("lock.lockNow")}
-          type="button"
-        >
-          <Lock className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={onOpenSettings}
-          className="w-10 h-10 rounded-full bg-white/5 text-white/60 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"
-          title={t("settings.title")}
-          aria-label={t("settings.title")}
-          type="button"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={onAddClick}
-          className="w-10 h-10 rounded-full border-2 border-dashed border-white/20
-                     flex items-center justify-center text-white/40 hover:text-white/70
-                     hover:border-white/40 transition-colors"
-          title={t("accounts.addAccount")}
-          aria-label={t("accounts.addAccount")}
-          type="button"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onMinimize}
+        className="w-10 h-10 rounded-full bg-white/5 text-white/50 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors shrink-0"
+        title={t("accounts.minimizeDock")}
+        aria-label={t("accounts.minimizeDock")}
+      >
+        <PanelLeftClose className="w-4 h-4" />
+      </button>
     </aside>
   );
 }
@@ -187,7 +127,9 @@ function AccountButton({
 
   const titleParts = [account.name];
   if (groupName) titleParts.push(`(${groupName})`);
-  titleParts.push(loggedOut ? "— session logged out, click to scan the QR code" : "— right-click to edit");
+  titleParts.push(
+    loggedOut ? "— session logged out, click to scan the QR code" : "— right-click to edit"
+  );
 
   return (
     <button

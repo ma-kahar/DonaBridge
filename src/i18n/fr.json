@@ -30,7 +30,9 @@
     "categoryBusiness": "Professionnel",
     "colorLabel": "Couleur du badge",
     "initialsLabel": "Initiales (max 2)",
-    "uploadPhoto": "Choisir une photo"
+    "uploadPhoto": "Choisir une photo",
+    "minimizeDock": "Réduire la barre des comptes",
+    "showDock": "Afficher la barre des comptes"
   },
   "settings": {
     "title": "Paramètres",

@@ -30,5 +30,27 @@
   },
   "files": {
     "ignore": ["dist", "node_modules", "target", "src-tauri/target", "src-tauri/gen", "src/lib/bindings.ts"]
-  }
+  },
+  "overrides": [
+    {
+      "include": ["src/components/WaMessage.tsx"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["src/components/QuickReplyBar.tsx"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noAutofocus": "off"
+          }
+        }
+      }
+    }
+  ]
 }

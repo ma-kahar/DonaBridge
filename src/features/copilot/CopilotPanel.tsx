@@ -8,6 +8,7 @@ import {
   aiSuggestReply,
   crmInsertDraft,
 } from "../../lib/ipc";
+import { useAppStore } from "../../store";
 import EmojiPickerPopover from "../../components/EmojiPickerPopover";
 import WaMessage from "../../components/WaMessage";
 
@@ -18,6 +19,9 @@ interface CopilotPanelProps {
 
 export default function CopilotPanel({ accountId, chatContext }: CopilotPanelProps) {
   const { t, i18n } = useTranslation();
+  const accountName = useAppStore(
+    (s) => s.accounts.find((account) => account.id === accountId)?.name
+  );
   const [tone, setTone] = useState<"friendly" | "professional" | "concise">("friendly");
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,7 +68,7 @@ export default function CopilotPanel({ accountId, chatContext }: CopilotPanelPro
     // Detect language from messages — use UI language as default
     const detectedLang = i18n.language || "en";
     try {
-      const reply = await aiSuggestReply(contact, messages, tone, detectedLang);
+      const reply = await aiSuggestReply(accountId, contact, messages, tone, detectedLang);
       setDraft(reply);
     } catch (err) {
       const msg = String(err);
@@ -242,6 +246,11 @@ export default function CopilotPanel({ accountId, chatContext }: CopilotPanelPro
       )}
 
       <p className="text-[11px] text-gray-500">{t("copilot.draftOnly")}</p>
+      {accountName && (
+        <p className="text-[11px] text-gray-500">
+          Drafts are prepared for “{accountName}” and signed with that account name.
+        </p>
+      )}
     </div>
   );
 }

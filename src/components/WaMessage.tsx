@@ -124,7 +124,6 @@ export default function WaMessage({ body, showLinkPreview = true }: WaMessagePro
 
   return (
     <div>
-      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: sanitised via regex rules above */}
       <span
         className="text-sm text-white leading-relaxed [&_strong]:font-bold [&_em]:italic [&_del]:line-through [&_code]:bg-black/40 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_pre]:bg-black/40 [&_pre]:p-2 [&_pre]:rounded [&_pre]:overflow-x-auto [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-0.5"
         dangerouslySetInnerHTML={{ __html: html }}

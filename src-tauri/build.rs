@@ -10,6 +10,7 @@ fn main() {
             "account_verify_pin",
             "account_clear_pin",
             "set_overlay_open",
+            "set_dock_collapsed",
             "list_account_groups",
             "upsert_account_group",
             "delete_account_group",

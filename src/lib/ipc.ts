@@ -128,6 +128,11 @@ export async function setOverlayOpen(open: boolean, activeAccountId: string | nu
   return invoke<void>("set_overlay_open", { open, activeAccountId });
 }
 
+export async function setDockCollapsed(collapsed: boolean): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("set_dock_collapsed", { collapsed });
+}
+
 // ── CRM IPC ──────────────────────────────────────────────────────────────────
 
 export async function crmListContacts(accountId: string): Promise<ContactDto[]> {
@@ -530,13 +535,14 @@ export async function aiReadActiveChat(accountId: string): Promise<void> {
 }
 
 export async function aiSuggestReply(
+  accountId: string,
   contact: string,
   messages: string[],
   tone: string,
   language: string
 ): Promise<string> {
   if (!isTauri()) return "";
-  return invoke<string>("ai_suggest_reply", { contact, messages, tone, language });
+  return invoke<string>("ai_suggest_reply", { accountId, contact, messages, tone, language });
 }
 
 export interface AiProfile {

@@ -266,6 +266,13 @@ pub async fn set_overlay_open(
     Ok(())
 }
 
+/// Hide the account dock and let the WhatsApp webview use the extra width.
+#[tauri::command]
+pub async fn set_dock_collapsed(app: AppHandle, collapsed: bool) -> Result<(), String> {
+    manager::set_dock_collapsed(&app, collapsed);
+    Ok(())
+}
+
 /// List all account groups.
 #[tauri::command]
 pub async fn list_account_groups() -> Result<Vec<AccountGroupInfo>, String> {

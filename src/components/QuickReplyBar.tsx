@@ -150,7 +150,7 @@ export default function QuickReplyBar({ accountId }: QuickReplyBarProps) {
             <div
               key={r.id}
               className="group flex items-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-medium text-white shrink-0 transition-opacity"
-              style={{ backgroundColor: r.color + "30", border: `1px solid ${r.color}60` }}
+              style={{ backgroundColor: `${r.color}30`, border: `1px solid ${r.color}60` }}
             >
               <button
                 type="button"

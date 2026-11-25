@@ -30,7 +30,9 @@
     "categoryBusiness": "Business",
     "colorLabel": "Badge color",
     "initialsLabel": "Initials (max 2)",
-    "uploadPhoto": "Upload photo"
+    "uploadPhoto": "Upload photo",
+    "minimizeDock": "Minimise the account bar",
+    "showDock": "Show the account bar"
   },
   "settings": {
     "title": "Settings",

@@ -15,14 +15,25 @@ use super::init_script;
 
 /// Width in logical pixels reserved for the left AccountDock (`w-16` = 64px).
 const DOCK_WIDTH: f64 = 64.0;
+/// Width of the slim rail shown when the account dock is minimised.
+const DOCK_RAIL_WIDTH: f64 = 12.0;
 /// Width in logical pixels reserved for the right CRM drawer when open (`w-[340px]`).
 const DRAWER_WIDTH: f64 = 340.0;
+/// Height of the bottom application taskbar (`h-12` = 48px).
+const TASKBAR_HEIGHT: f64 = 48.0;
 
 static DRAWER_OPEN: AtomicBool = AtomicBool::new(false);
+static DOCK_COLLAPSED: AtomicBool = AtomicBool::new(false);
 
 /// Update drawer open state and resize all `wa_*` webviews accordingly.
 pub fn set_drawer_open(app: &AppHandle, open: bool) {
     DRAWER_OPEN.store(open, Ordering::Relaxed);
+    resize_all_webviews(app);
+}
+
+/// Minimise or restore the account dock and resize the WhatsApp webviews.
+pub fn set_dock_collapsed(app: &AppHandle, collapsed: bool) {
+    DOCK_COLLAPSED.store(collapsed, Ordering::Relaxed);
     resize_all_webviews(app);
 }
 
@@ -38,11 +49,16 @@ fn webview_bounds(app: &AppHandle) -> tauri::Result<Rect> {
     } else {
         0.0
     };
-    let logical_w = (physical.width as f64 / scale - DOCK_WIDTH - right_reserved).max(200.0);
-    let logical_h = (physical.height as f64 / scale).max(200.0);
+    let left_reserved = if DOCK_COLLAPSED.load(Ordering::Relaxed) {
+        DOCK_RAIL_WIDTH
+    } else {
+        DOCK_WIDTH
+    };
+    let logical_w = (physical.width as f64 / scale - left_reserved - right_reserved).max(200.0);
+    let logical_h = (physical.height as f64 / scale - TASKBAR_HEIGHT).max(200.0);
 
     Ok(Rect {
-        position: Position::Logical(LogicalPosition::new(DOCK_WIDTH, 0.0)),
+        position: Position::Logical(LogicalPosition::new(left_reserved, 0.0)),
         size: Size::Logical(LogicalSize::new(logical_w, logical_h)),
     })
 }
