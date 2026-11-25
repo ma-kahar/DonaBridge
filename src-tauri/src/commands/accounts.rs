@@ -45,7 +45,7 @@ impl From<Account> for AccountInfo {
 #[specta::specta]
 pub async fn list_accounts(_app: AppHandle) -> Result<Vec<AccountInfo>, String> {
     let conn = db::get()
-        .try_lock_for(std::time::Duration::from_secs(2))
+        .try_lock_for(std::time::Duration::from_secs(5))
         .ok_or_else(|| "Database is busy".to_string())?;
     let list = core_accounts::list_accounts(&conn).map_err(|e| e.to_string())?;
     Ok(list.into_iter().map(AccountInfo::from).collect())
@@ -83,7 +83,7 @@ pub async fn upsert_account(app: AppHandle, info: AccountInfo) -> Result<Account
 
     let saved = {
         let conn = db::get()
-            .try_lock_for(std::time::Duration::from_secs(2))
+            .try_lock_for(std::time::Duration::from_secs(5))
             .ok_or_else(|| "Database is busy, please try again.".to_string())?;
         let existing = core_accounts::get_account(&conn, &id).map_err(|e| e.to_string())?;
         let mut account = existing.unwrap_or_else(|| Account {

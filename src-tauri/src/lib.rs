@@ -147,9 +147,14 @@ pub fn run() {
                 let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
                 loop {
                     interval.tick().await;
+                    // Use try_lock() so the background timer never blocks Tauri commands
+                    // that are concurrently trying to acquire the same DB mutex.
                     let due = {
-                        let conn = dona_core::db::get().lock();
-                        dona_core::crm::due_reminders(&conn, chrono::Utc::now()).unwrap_or_default()
+                        match dona_core::db::get().try_lock() {
+                            Some(conn) => dona_core::crm::due_reminders(&conn, chrono::Utc::now())
+                                .unwrap_or_default(),
+                            None => continue, // DB busy — skip this tick, try again in 30s
+                        }
                     };
                     for mut rem in due {
                         let body = rem
@@ -163,8 +168,10 @@ pub fn run() {
                             .body(body)
                             .show();
                         rem.status = "notified".to_string();
-                        let conn = dona_core::db::get().lock();
-                        let _ = dona_core::crm::upsert_reminder(&conn, &rem);
+                        // Also use try_lock here — skip update if DB is momentarily busy
+                        if let Some(conn) = dona_core::db::get().try_lock() {
+                            let _ = dona_core::crm::upsert_reminder(&conn, &rem);
+                        }
                     }
                 }
             });
