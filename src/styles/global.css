@@ -19,4 +19,27 @@
   ::-webkit-scrollbar-thumb {
     @apply bg-white/20 rounded-full;
   }
+
+  /* ── Light mode overrides ── */
+  html.light {
+    --dona-dark:   #F0F2F5;
+    --dona-panel:  #FFFFFF;
+    --dona-border: #D1D7DB;
+    --dona-text:   #111B21;
+    --dona-muted:  #54656F;
+  }
+  html.light body,
+  html.light #root {
+    background-color: var(--dona-dark);
+    color: var(--dona-text);
+  }
+  html.light .text-white         { color: var(--dona-text) !important; }
+  html.light .text-gray-400      { color: var(--dona-muted) !important; }
+  html.light .text-gray-300      { color: #374151 !important; }
+  html.light .text-gray-500      { color: #6B7280 !important; }
+  html.light .bg-dona-dark       { background-color: var(--dona-dark) !important; }
+  html.light .bg-dona-panel      { background-color: var(--dona-panel) !important; }
+  html.light .border-dona-border { border-color: var(--dona-border) !important; }
+  html.light .bg-dona-dark\/80   { background-color: rgba(240,242,245,0.9) !important; }
+  html.light ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15) !important; }
 }

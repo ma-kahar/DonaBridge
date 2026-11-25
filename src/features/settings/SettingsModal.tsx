@@ -1,13 +1,16 @@
 import {
   CheckCircle2,
+  Download,
   Globe,
   KeyRound,
+  Moon,
   Pencil,
   Plus,
   RefreshCw,
   Server,
   ShieldCheck,
   Trash2,
+  Upload,
   Users,
   X,
 } from "lucide-react";
@@ -21,13 +24,17 @@ import {
   aiListProfiles,
   aiSetActiveProfile,
   aiUpsertProfile,
+  backupEncrypted,
+  clearDndSchedule,
   mcpRotateToken,
   mcpStart,
   mcpStatus,
   mcpStop,
+  restoreEncrypted,
   securityClearPin,
   securityLockStatus,
   securitySetPin,
+  setDndSchedule,
 } from "../../lib/ipc";
 import { type Account, useAppStore } from "../../store";
 
@@ -57,6 +64,11 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
   const [hasPin, setHasPin] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [mcp, setMcp] = useState<McpStatus>({ running: false, port: null, has_token: false });
+  const [dndTimes, setDndTimes] = useState<Record<string, { start: string; end: string }>>({});
+  const [dndStatus, setDndStatus] = useState<string | null>(null);
+  const [backupPass, setBackupPass] = useState("");
+  const [restorePath, setRestorePath] = useState("");
+  const [backupStatus, setBackupStatus] = useState<string | null>(null);
 
   // Multi-profile AI state
   const [profiles, setProfiles] = useState<AiProfile[]>([]);
@@ -229,52 +241,108 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
             {tab === "accounts" && (
               <div className="space-y-3">
                 <p className="text-xs text-gray-400">{t("settings.accountsHint")}</p>
+                {dndStatus && <p className="text-[11px] text-emerald-400">{dndStatus}</p>}
                 {accounts.length === 0 ? (
                   <p className="text-sm text-gray-500 py-8 text-center">
                     {t("onboarding.addFirstAccount")}
                   </p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {accounts.map((acc) => (
+                    {accounts.map((acc) => {
+                      const dnd = dndTimes[acc.id] ?? { start: "22:00", end: "07:00" };
+                      return (
                       <div
                         key={acc.id}
-                        className="flex items-center justify-between gap-3 rounded-xl bg-dona-dark border border-dona-border p-3"
+                        className="flex flex-col gap-2.5 rounded-xl bg-dona-dark border border-dona-border p-3"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white overflow-hidden shrink-0"
-                            style={{ backgroundColor: acc.color }}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white overflow-hidden shrink-0"
+                              style={{ backgroundColor: acc.color }}
+                            >
+                              {acc.avatarDataUrl ? (
+                                <img
+                                  src={acc.avatarDataUrl}
+                                  alt={acc.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                acc.iconText || acc.name[0]
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-white truncate">{acc.name}</p>
+                              <p className="text-[11px] text-gray-400">
+                                {acc.category} {acc.hasLock ? "· 🔒" : ""} {acc.muted ? "· 🔇" : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onEditAccount(acc);
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-200 inline-flex items-center gap-1 shrink-0"
                           >
-                            {acc.avatarDataUrl ? (
-                              <img
-                                src={acc.avatarDataUrl}
-                                alt={acc.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              acc.iconText || acc.name[0]
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{acc.name}</p>
-                            <p className="text-[11px] text-gray-400">
-                              {acc.category} {acc.hasLock ? "· 🔒" : ""} {acc.muted ? "· 🔇" : ""}
-                            </p>
-                          </div>
+                            <Pencil className="w-3.5 h-3.5" />
+                            {t("common.edit")}
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onClose();
-                            onEditAccount(acc);
-                          }}
-                          className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-200 inline-flex items-center gap-1 shrink-0"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                          {t("common.edit")}
-                        </button>
+
+                        {/* Do-Not-Disturb Quiet Hours */}
+                        <div className="flex items-center gap-1.5 pt-2 border-t border-dona-border/60 text-[11px]">
+                          <Moon className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <input
+                            type="time"
+                            value={dnd.start}
+                            onChange={(e) =>
+                              setDndTimes((prev) => ({
+                                ...prev,
+                                [acc.id]: { ...dnd, start: e.target.value },
+                              }))
+                            }
+                            className="rounded bg-dona-panel border border-dona-border px-1.5 py-0.5 text-white"
+                          />
+                          <span className="text-gray-500">–</span>
+                          <input
+                            type="time"
+                            value={dnd.end}
+                            onChange={(e) =>
+                              setDndTimes((prev) => ({
+                                ...prev,
+                                [acc.id]: { ...dnd, end: e.target.value },
+                              }))
+                            }
+                            className="rounded bg-dona-panel border border-dona-border px-1.5 py-0.5 text-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void setDndSchedule(acc.id, dnd.start, dnd.end).then(() =>
+                                setDndStatus(`DND saved for ${acc.name} (${dnd.start}–${dnd.end})`)
+                              );
+                            }}
+                            className="ml-auto px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white"
+                          >
+                            {t("common.save")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void clearDndSchedule(acc.id).then(() =>
+                                setDndStatus(`DND cleared for ${acc.name}`)
+                              );
+                            }}
+                            className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-gray-300"
+                          >
+                            Clear
+                          </button>
+                        </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -493,12 +561,115 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
                   </form>
                 )}
 
-                {/* Backup & Restore - Planned for v1.1 */}
+                {/* Backup & Restore */}
                 <div className="border-t border-dona-border pt-4 space-y-3">
-                  <p className="text-xs font-semibold text-white">Encrypted Backup (Coming in v1.1)</p>
+                  <p className="text-xs font-semibold text-white">Encrypted Backup & Restore</p>
                   <p className="text-[11px] text-gray-400">
-                    Export all app data as a password-protected backup file will be available in the next release.
+                    Export or restore all app data using a password-protected backup file (.age).
                   </p>
+                  <input
+                    type="password"
+                    value={backupPass}
+                    onChange={(e) => setBackupPass(e.target.value)}
+                    placeholder="Backup password"
+                    className="w-full rounded-lg bg-dona-dark border border-dona-border px-3 py-2 text-xs text-white"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={!backupPass.trim()}
+                      onClick={() => {
+                        void backupEncrypted(backupPass)
+                          .then((path) => setBackupStatus(`Backup saved: ${path}`))
+                          .catch((err) => setBackupStatus(String(err)));
+                      }}
+                      className="flex-1 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-xs font-medium text-white inline-flex items-center justify-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Backup
+                    </button>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <input
+                      type="text"
+                      value={restorePath}
+                      onChange={(e) => setRestorePath(e.target.value)}
+                      placeholder="Path to .age backup file"
+                      className="flex-1 rounded-lg bg-dona-dark border border-dona-border px-3 py-2 text-xs text-white"
+                    />
+                    <button
+                      type="button"
+                      disabled={!backupPass.trim() || !restorePath.trim()}
+                      onClick={() => {
+                        void restoreEncrypted(restorePath, backupPass)
+                          .then(() => setBackupStatus("Backup restored successfully."))
+                          .catch((err) => setBackupStatus(String(err)));
+                      }}
+                      className="py-2 px-3 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-xs text-gray-200 inline-flex items-center gap-1.5"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Restore
+                    </button>
+                  </div>
+                  {backupStatus && <p className="text-[11px] text-emerald-400 break-all">{backupStatus}</p>}
+
+                  {/* Quick JSON Backup & Restore for CRM Projects, Quick Replies, Pinned & Theme */}
+                  <div className="border-t border-dona-border pt-3 space-y-2">
+                    <p className="text-xs font-semibold text-white">CRM & Workspace JSON Backup</p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const data: Record<string, string> = {};
+                          for (let i = 0; i < localStorage.length; i++) {
+                            const k = localStorage.key(i);
+                            if (k && k.startsWith("dona_")) {
+                              data[k] = localStorage.getItem(k) ?? "";
+                            }
+                          }
+                          const blob = new Blob([JSON.stringify(data, null, 2)], {
+                            type: "application/json",
+                          });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = `donabridge-crm-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          setBackupStatus("CRM JSON backup exported.");
+                        }}
+                        className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-medium text-white inline-flex items-center justify-center gap-1.5"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Export JSON
+                      </button>
+                      <label className="flex-1 py-1.5 px-3 rounded-lg border border-dona-border hover:bg-white/5 text-xs text-gray-200 inline-flex items-center justify-center gap-1.5 cursor-pointer">
+                        <Upload className="w-3.5 h-3.5" />
+                        Import JSON
+                        <input
+                          type="file"
+                          accept=".json"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            void file.text().then((txt) => {
+                              try {
+                                const parsed = JSON.parse(txt) as Record<string, string>;
+                                Object.entries(parsed).forEach(([k, v]) => {
+                                  if (k.startsWith("dona_")) localStorage.setItem(k, v);
+                                });
+                                setBackupStatus("CRM JSON restored! Reopen CRM to see changes.");
+                              } catch {
+                                setBackupStatus("Invalid JSON backup file.");
+                              }
+                            });
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

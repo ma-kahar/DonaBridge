@@ -1,7 +1,7 @@
 import { ImagePlus, Lock, Trash2, X } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { accountClearPin, accountSetPin, deleteAccount, upsertAccount } from "../../lib/ipc";
+import { accountClearPin, accountSetPin, deleteAccount, switchAccount, upsertAccount } from "../../lib/ipc";
 import { type Account, useAppStore } from "../../store";
 
 const COLOR_PRESETS = ["#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#06B6D4", "#6366F1"];
@@ -25,6 +25,7 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
   const [pinInput, setPinInput] = useState("");
   const [hasLock, setHasLock] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +83,7 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
     if (!trimmed || saving) return;
 
     setSaving(true);
+    setError(null);
     try {
       const id = editingAccount ? editingAccount.id : "";
       const initials = (iconText.trim() || trimmed.slice(0, 2)).toUpperCase().slice(0, 2);
@@ -120,8 +122,11 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
       } else {
         setAccounts([...accounts, nextAccount]);
         setActiveAccount(nextAccount.id);
+        void switchAccount(nextAccount.id);
       }
       onClose();
+    } catch (err) {
+      setError(String(err));
     } finally {
       setSaving(false);
     }
@@ -302,6 +307,8 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
               />
             )}
           </div>
+
+          {error && <p className="text-xs text-red-400 break-words">{error}</p>}
 
           <div className="flex items-center justify-between pt-2">
             {editingAccount ? (

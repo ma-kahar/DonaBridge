@@ -100,12 +100,6 @@ pub async fn upsert_account(app: AppHandle, info: AccountInfo) -> Result<Account
         core_accounts::upsert_account(&conn, &account).map_err(|e| e.to_string())?
     };
 
-    if is_new {
-        manager::switch_to_account(&app, &saved.id, &saved.profile_name, saved.zoom)
-            .await
-            .map_err(|e| e.to_string())?;
-    }
-
     Ok(AccountInfo::from(saved))
 }
 

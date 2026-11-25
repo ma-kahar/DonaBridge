@@ -68,6 +68,7 @@ pub fn run() {
             commands::crm::crm_delete_template,
             commands::crm::crm_export_csv,
             commands::crm::crm_insert_draft,
+            commands::crm::crm_open_chat,
             commands::crm::crm_set_drawer_open,
             commands::crm::crm_list_tags,
             commands::crm::crm_upsert_tag,

@@ -5,12 +5,19 @@ import {
   Copy,
   Download,
   FileText,
+  FolderKanban,
   List,
+  Maximize2,
   MessageSquare,
+  Minimize2,
+  Moon,
   Pencil,
+  Pin,
+  PinOff,
   Plus,
   SendHorizontal,
   Sparkles,
+  Sun,
   Tag,
   Trash2,
   Upload,
@@ -32,6 +39,7 @@ import {
   crmExportCsv,
   crmImportCsv,
   crmInsertDraft,
+  crmOpenChat,
   crmListContactTags,
   crmListContacts,
   crmListNotes,
@@ -44,27 +52,55 @@ import {
   crmUpsertTag,
   crmUpsertTemplate,
 } from "../../lib/ipc";
+import { useAppStore } from "../../store";
 import CopilotPanel from "../copilot/CopilotPanel";
+import ProjectsPanel from "./ProjectsPanel";
 import EmojiPickerPopover from "../../components/EmojiPickerPopover";
 import QuickReplyBar from "../../components/QuickReplyBar";
 import WaMessage from "../../components/WaMessage";
 
 const STAGES = ["new", "follow_up", "negotiating", "won", "do_not_contact"] as const;
 
+function pinnedKey(accountId: string) {
+  return `dona_crm_pinned_${accountId}`;
+}
+function loadPinned(accountId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(pinnedKey(accountId));
+    if (raw) return new Set(JSON.parse(raw) as string[]);
+  } catch {}
+  return new Set();
+}
+function savePinned(accountId: string, set: Set<string>) {
+  localStorage.setItem(pinnedKey(accountId), JSON.stringify([...set]));
+}
+
 interface CrmDrawerProps {
   open: boolean;
   accountId: string | null;
   chatContext: { contact: string; messages: string[] } | null;
   onClose: () => void;
+  expanded: boolean;
+  onToggleExpand: () => void;
 }
 
-type Tab = "contacts" | "reminders" | "templates" | "quickreplies" | "copilot";
+type Tab = "contacts" | "projects" | "reminders" | "templates" | "quickreplies" | "copilot";
 
-export default function CrmDrawer({ open, accountId, chatContext, onClose }: CrmDrawerProps) {
+export default function CrmDrawer({
+  open,
+  accountId,
+  chatContext,
+  onClose,
+  expanded,
+  onToggleExpand,
+}: CrmDrawerProps) {
   const { t } = useTranslation();
+  const { theme, toggleTheme } = useAppStore();
+
   const [tab, setTab] = useState<Tab>("contacts");
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [search, setSearch] = useState("");
+  const [tagFilter, setTagFilter] = useState<string>("");
   const [selectedContact, setSelectedContact] = useState<ContactDto | null>(null);
 
   const [contacts, setContacts] = useState<ContactDto[]>([]);
@@ -73,6 +109,7 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
   const [allTags, setAllTags] = useState<TagDto[]>([]);
   const [contactTags, setContactTags] = useState<TagDto[]>([]);
   const [notes, setNotes] = useState<NoteDto[]>([]);
+  const [pinned, setPinned] = useState<Set<string>>(new Set());
 
   const [phone, setPhone] = useState("");
   const [contactName, setContactName] = useState("");
@@ -80,6 +117,7 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
   const [tagInput, setTagInput] = useState("");
   const [reminderNote, setReminderNote] = useState("");
   const [reminderDue, setReminderDue] = useState("");
+  const [reminderContactId, setReminderContactId] = useState("");
   const [tplName, setTplName] = useState("");
   const [tplBody, setTplBody] = useState("");
   const [tplPreview, setTplPreview] = useState(false);
@@ -102,6 +140,7 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
   useEffect(() => {
     if (open && accountId) {
       void refresh();
+      setPinned(loadPinned(accountId));
     }
   }, [open, accountId, refresh]);
 
@@ -118,13 +157,31 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
 
   if (!open) return null;
 
-  const filteredContacts = contacts.filter((c) => {
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      c.phone_e164.toLowerCase().includes(q) || (c.display_name || "").toLowerCase().includes(q)
-    );
-  });
+  // --- Pin helpers ---
+  function togglePin(id: string) {
+    if (!accountId) return;
+    const next = new Set(pinned);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setPinned(next);
+    savePinned(accountId, next);
+  }
+
+  // --- Filtered + sorted contacts (pinned first) ---
+  const filteredContacts = contacts
+    .filter((c) => {
+      const q = search.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        c.phone_e164.toLowerCase().includes(q) ||
+        (c.display_name || "").toLowerCase().includes(q);
+      return matchSearch;
+    })
+    .sort((a, b) => {
+      const ap = pinned.has(a.id) ? 0 : 1;
+      const bp = pinned.has(b.id) ? 0 : 1;
+      return ap - bp;
+    });
 
   async function handleAddContact(e: FormEvent) {
     e.preventDefault();
@@ -244,94 +301,90 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
     setReminders((prev) => prev.map((r) => (r.id === reminder.id ? { ...r, status: "done" } : r)));
   }
 
+  async function handleOpenChat(phone_e164: string) {
+    if (!accountId) return;
+    await crmOpenChat(accountId, phone_e164);
+  }
+
+  const widthClass = expanded ? "w-full" : "w-[340px]";
+
   return (
-    <aside className="w-[340px] shrink-0 h-full bg-dona-dark border-l border-dona-border flex flex-col">
-      {/* Header */}
+    <aside
+      className={`${widthClass} shrink-0 h-full bg-dona-dark border-l border-dona-border flex flex-col transition-all duration-200`}
+    >
+      {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-dona-border">
-        <h2 className="font-semibold text-white">{t("crm.title")}</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-white/50 hover:text-white transition-colors"
-          aria-label={t("common.close")}
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <h2 className="font-semibold text-white text-sm">{t("crm.title")}</h2>
+        <div className="flex items-center gap-1.5">
+          {/* Light / Dark toggle */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="text-gray-400 hover:text-white transition-colors"
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+          >
+            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+          {/* Expand / Collapse */}
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            className="text-gray-400 hover:text-white transition-colors"
+            title={expanded ? "Collapse CRM" : "Expand CRM"}
+          >
+            {expanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+          {/* Close */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-white/50 hover:text-white transition-colors"
+            aria-label={t("common.close")}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="grid grid-cols-5 border-b border-dona-border text-[11px]">
-        <button
-          type="button"
-          onClick={() => {
-            setTab("contacts");
-            setSelectedContact(null);
-          }}
-          className={`flex items-center justify-center gap-1 py-2.5 transition-colors ${
-            tab === "contacts"
-              ? "text-white border-b-2 border-blue-500 bg-white/5"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          {t("crm.contacts")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("reminders")}
-          className={`flex items-center justify-center gap-1 py-2.5 transition-colors ${
-            tab === "reminders"
-              ? "text-white border-b-2 border-blue-500 bg-white/5"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <Bell className="w-3.5 h-3.5" />
-          {t("crm.reminders")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("templates")}
-          className={`flex items-center justify-center gap-1 py-2.5 transition-colors ${
-            tab === "templates"
-              ? "text-white border-b-2 border-blue-500 bg-white/5"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <FileText className="w-3.5 h-3.5" />
-          {t("crm.templates")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("quickreplies")}
-          className={`flex items-center justify-center gap-1 py-2.5 transition-colors ${
-            tab === "quickreplies"
-              ? "text-white border-b-2 border-blue-500 bg-white/5"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          Quick
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("copilot")}
-          className={`flex items-center justify-center gap-1 py-2.5 transition-colors ${
-            tab === "copilot"
-              ? "text-white border-b-2 border-blue-500 bg-white/5"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          {t("copilot.title")}
-        </button>
+      {/* ── Tabs ── */}
+      <div className="grid grid-cols-6 border-b border-dona-border text-[10px]">
+        {(
+          [
+            { id: "contacts", icon: <Users className="w-3.5 h-3.5" />, label: t("crm.contacts") },
+            { id: "projects", icon: <FolderKanban className="w-3.5 h-3.5" />, label: "Projects" },
+            { id: "reminders", icon: <Bell className="w-3.5 h-3.5" />, label: t("crm.reminders") },
+            { id: "templates", icon: <FileText className="w-3.5 h-3.5" />, label: t("crm.templates") },
+            { id: "quickreplies", icon: <MessageSquare className="w-3.5 h-3.5" />, label: "Quick" },
+            { id: "copilot", icon: <Sparkles className="w-3.5 h-3.5" />, label: t("copilot.title") },
+          ] as { id: Tab; icon: React.ReactNode; label: string }[]
+        ).map(({ id, icon, label }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => {
+              setTab(id);
+              if (id === "contacts") setSelectedContact(null);
+            }}
+            className={`flex flex-col items-center justify-center gap-0.5 py-2 transition-colors ${
+              tab === id
+                ? "text-white border-b-2 border-blue-500 bg-white/5"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            {icon}
+            <span className="truncate max-w-full px-0.5">{label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Content */}
+      {/* ── Content ── */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {!accountId ? (
           <p className="text-xs text-gray-500 text-center py-8">{t("accounts.selectAccount")}</p>
         ) : tab === "copilot" ? (
           <CopilotPanel accountId={accountId} chatContext={chatContext} />
+        ) : tab === "projects" ? (
+          <ProjectsPanel accountId={accountId} contacts={contacts} />
         ) : tab === "quickreplies" ? (
           <div className="space-y-3">
             <p className="text-xs text-gray-400">
@@ -340,7 +393,7 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
             <QuickReplyBar accountId={accountId} />
           </div>
         ) : tab === "contacts" && selectedContact ? (
-          /* ── Contact Detail View (Notes, Tags, Follow-up Reminder) ── */
+          /* ── Contact Detail ── */
           <div className="space-y-3">
             <button
               type="button"
@@ -352,10 +405,23 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
             </button>
 
             <div className="rounded-lg bg-dona-panel border border-dona-border p-3 space-y-2">
-              <p className="text-sm font-semibold text-white">
-                {selectedContact.display_name || selectedContact.phone_e164}
-              </p>
-              <p className="text-xs text-gray-400">{selectedContact.phone_e164}</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">
+                    {selectedContact.display_name || selectedContact.phone_e164}
+                  </p>
+                  <p className="text-xs text-gray-400">{selectedContact.phone_e164}</p>
+                </div>
+                {/* Open Chat inside app */}
+                <button
+                  type="button"
+                  onClick={() => void handleOpenChat(selectedContact.phone_e164)}
+                  className="text-emerald-400 hover:text-emerald-300 text-[11px] flex items-center gap-1 px-2 py-1 rounded bg-emerald-900/30 border border-emerald-800/50"
+                  title="Open in WhatsApp"
+                >
+                  💬 Open Chat
+                </button>
+              </div>
               <select
                 value={selectedContact.stage}
                 onChange={(e) => void handleStageChange(selectedContact, e.target.value)}
@@ -471,6 +537,7 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
           </div>
         ) : tab === "contacts" ? (
           <>
+            {/* Add Contact */}
             <form onSubmit={handleAddContact} className="space-y-2">
               <input
                 type="text"
@@ -498,7 +565,7 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
               </div>
             </form>
 
-            {/* Search + View Toggle + CSV Import/Export */}
+            {/* Search + Tag Filter + View toggle */}
             <div className="flex items-center gap-1.5">
               <input
                 type="text"
@@ -521,6 +588,38 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
               </button>
             </div>
 
+            {/* Tag filter chips */}
+            {allTags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  onClick={() => setTagFilter("")}
+                  className={`px-2 py-0.5 rounded-full text-[10px] border transition-colors ${
+                    tagFilter === ""
+                      ? "bg-blue-600 border-blue-500 text-white"
+                      : "bg-dona-panel border-dona-border text-gray-400"
+                  }`}
+                >
+                  All
+                </button>
+                {allTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => setTagFilter(tagFilter === tag.id ? "" : tag.id)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] border transition-colors ${
+                      tagFilter === tag.id
+                        ? "bg-blue-600/40 border-blue-500 text-blue-100"
+                        : "bg-dona-panel border-dona-border text-gray-400"
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Import / Export CSV */}
             <div className="flex items-center justify-between text-xs text-gray-400">
               <label className="cursor-pointer inline-flex items-center gap-1 hover:text-white">
                 <Upload className="w-3 h-3" />
@@ -540,41 +639,73 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
             {filteredContacts.length === 0 ? (
               <p className="text-xs text-gray-500 text-center py-6">{t("crm.noContacts")}</p>
             ) : viewMode === "kanban" ? (
+              /* Kanban by stage */
               <div className="space-y-3">
                 {STAGES.map((stage) => {
                   const stageContacts = filteredContacts.filter((c) => c.stage === stage);
                   return (
                     <div
                       key={stage}
-                      className="rounded-lg bg-dona-panel/60 border border-dona-border p-2 space-y-1.5"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const contactId = e.dataTransfer.getData("text/contact-id");
+                        const dragged = contacts.find((x) => x.id === contactId);
+                        if (dragged && dragged.stage !== stage) {
+                          void handleStageChange(dragged, stage);
+                        }
+                      }}
+                      className="rounded-lg bg-dona-panel/60 border border-dona-border p-2 space-y-1.5 min-h-[56px]"
                     >
                       <div className="flex items-center justify-between text-[11px] font-semibold text-gray-300">
                         <span>{t(`crm.stages.${stage}`)}</span>
                         <span className="text-gray-500">{stageContacts.length}</span>
                       </div>
                       {stageContacts.map((c) => (
-                        <button
+                        <div
                           key={c.id}
-                          type="button"
-                          onClick={() => setSelectedContact(c)}
-                          className="w-full text-left rounded bg-dona-dark border border-dona-border px-2 py-1.5 hover:border-blue-500"
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData("text/contact-id", c.id)}
+                          className="relative group cursor-grab active:cursor-grabbing"
                         >
-                          <p className="text-xs text-white truncate">
-                            {c.display_name || c.phone_e164}
-                          </p>
-                          <p className="text-[10px] text-gray-400">{c.phone_e164}</p>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedContact(c)}
+                            className="w-full text-left rounded bg-dona-dark border border-dona-border px-2 py-1.5 hover:border-blue-500"
+                          >
+                            <p className="text-xs text-white truncate pr-5">
+                              {pinned.has(c.id) && "📌 "}
+                              {c.display_name || c.phone_e164}
+                            </p>
+                            <p className="text-[10px] text-gray-400">{c.phone_e164}</p>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => togglePin(c.id)}
+                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 text-gray-500 hover:text-amber-400 transition-opacity"
+                            title={pinned.has(c.id) ? "Unpin" : "Pin"}
+                          >
+                            {pinned.has(c.id) ? (
+                              <PinOff className="w-3 h-3" />
+                            ) : (
+                              <Pin className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
                       ))}
                     </div>
                   );
                 })}
               </div>
             ) : (
+              /* List view */
               <ul className="space-y-2">
                 {filteredContacts.map((c) => (
                   <li
                     key={c.id}
-                    className="rounded-lg bg-dona-panel border border-dona-border p-2.5 space-y-1.5"
+                    className={`rounded-lg bg-dona-panel border p-2.5 space-y-1.5 ${
+                      pinned.has(c.id) ? "border-amber-500/50" : "border-dona-border"
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <button
@@ -583,18 +714,44 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
                         className="min-w-0 text-left hover:underline"
                       >
                         <p className="text-xs font-medium text-white truncate">
+                          {pinned.has(c.id) && "📌 "}
                           {c.display_name || c.phone_e164}
                         </p>
                         <p className="text-[11px] text-gray-400">{c.phone_e164}</p>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDeleteContact(c.id)}
-                        className="text-gray-500 hover:text-red-400"
-                        aria-label={t("common.delete")}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {/* Open chat inside app */}
+                        <button
+                          type="button"
+                          onClick={() => void handleOpenChat(c.phone_e164)}
+                          className="text-emerald-400 hover:text-emerald-300"
+                          title="Open Chat"
+                        >
+                          💬
+                        </button>
+                        {/* Pin */}
+                        <button
+                          type="button"
+                          onClick={() => togglePin(c.id)}
+                          className={`${pinned.has(c.id) ? "text-amber-400" : "text-gray-500 hover:text-amber-400"}`}
+                          title={pinned.has(c.id) ? "Unpin" : "Pin to top"}
+                        >
+                          {pinned.has(c.id) ? (
+                            <PinOff className="w-3.5 h-3.5" />
+                          ) : (
+                            <Pin className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        {/* Delete */}
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteContact(c.id)}
+                          className="text-gray-500 hover:text-red-400"
+                          aria-label={t("common.delete")}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <select
                       value={c.stage}
@@ -613,43 +770,113 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
             )}
           </>
         ) : tab === "reminders" ? (
-          reminders.length === 0 ? (
-            <p className="text-xs text-gray-500 text-center py-6">{t("crm.noReminders")}</p>
-          ) : (
-            <ul className="space-y-2">
-              {reminders.map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-lg bg-dona-panel border border-dona-border p-2.5 flex items-center justify-between gap-2"
+          <div className="space-y-3">
+            {/* Add Reminder form */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!reminderNote.trim()) return;
+                const targetContact = reminderContactId || contacts[0]?.id || "general";
+                const dueIso = reminderDue
+                  ? new Date(reminderDue).toISOString()
+                  : new Date().toISOString();
+                await crmUpsertReminder({
+                  id: "",
+                  contact_id: targetContact,
+                  due_at: dueIso,
+                  note: reminderNote.trim(),
+                  status: "pending",
+                });
+                setReminderNote("");
+                setReminderDue("");
+                await refresh();
+              }}
+              className="space-y-2 rounded-lg bg-dona-panel border border-dona-border p-2.5"
+            >
+              <select
+                value={reminderContactId}
+                onChange={(e) => setReminderContactId(e.target.value)}
+                className="w-full rounded bg-dona-dark border border-dona-border px-2 py-1 text-xs text-gray-200"
+              >
+                <option value="">General Reminder (or pick contact)</option>
+                {contacts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.display_name || c.phone_e164}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                required
+                value={reminderNote}
+                onChange={(e) => setReminderNote(e.target.value)}
+                placeholder="Reminder note..."
+                className="w-full rounded bg-dona-dark border border-dona-border px-2.5 py-1.5 text-xs text-white"
+              />
+              <div className="flex gap-1.5">
+                <input
+                  type="datetime-local"
+                  value={reminderDue}
+                  onChange={(e) => setReminderDue(e.target.value)}
+                  className="flex-1 rounded bg-dona-dark border border-dona-border px-2 py-1 text-[11px] text-white"
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-1 rounded bg-blue-600 hover:bg-blue-500 text-xs text-white"
                 >
-                  <div className="min-w-0">
-                    <p className="text-xs text-white truncate">{r.note || r.contact_id}</p>
-                    <p className="text-[11px] text-gray-400">
-                      {r.due_at ? new Date(r.due_at).toLocaleString() : r.status}
-                    </p>
-                  </div>
-                  {r.status !== "done" && (
-                    <button
-                      type="button"
-                      onClick={() => void handleCompleteReminder(r)}
-                      className="text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white"
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </form>
+
+            {reminders.length === 0 ? (
+              <p className="text-xs text-gray-500 text-center py-4">{t("crm.noReminders")}</p>
+            ) : (
+              <ul className="space-y-2">
+                {reminders.map((r) => {
+                  const contact = contacts.find((c) => c.id === r.contact_id);
+                  return (
+                    <li
+                      key={r.id}
+                      className="rounded-lg bg-dona-panel border border-dona-border p-2.5 flex items-center justify-between gap-2"
                     >
-                      ✓
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )
+                      <div className="min-w-0">
+                        <p className="text-xs text-white truncate">{r.note || "Follow-up"}</p>
+                        <p className="text-[10px] text-blue-400 truncate">
+                          {contact ? contact.display_name || contact.phone_e164 : "General"}
+                        </p>
+                        <p className="text-[10px] text-gray-400">
+                          {r.due_at ? new Date(r.due_at).toLocaleString() : r.status}
+                        </p>
+                      </div>
+                      {r.status !== "done" && (
+                        <button
+                          type="button"
+                          onClick={() => void handleCompleteReminder(r)}
+                          className="text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white shrink-0"
+                        >
+                          ✓
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         ) : (
+          /* ── Templates ── */
           <>
-            {/* Template add/edit form */}
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!tplName.trim() || !tplBody.trim()) return;
                 if (editingTpl) {
-                  await crmUpsertTemplate({ ...editingTpl, name: tplName.trim(), body: tplBody.trim() });
+                  await crmUpsertTemplate({
+                    ...editingTpl,
+                    name: tplName.trim(),
+                    body: tplBody.trim(),
+                  });
                   setEditingTpl(null);
                 } else {
                   await crmUpsertTemplate({
@@ -674,7 +901,11 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
                 {editingTpl && (
                   <button
                     type="button"
-                    onClick={() => { setEditingTpl(null); setTplName(""); setTplBody(""); }}
+                    onClick={() => {
+                      setEditingTpl(null);
+                      setTplName("");
+                      setTplBody("");
+                    }}
                     className="text-xs text-gray-400 hover:text-white"
                   >
                     {t("common.cancel")}
@@ -699,7 +930,6 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
                   className="w-full rounded-lg bg-dona-panel border border-dona-border px-2.5 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500 pr-8"
                 />
               </div>
-              {/* WhatsApp formatting helpers + emoji picker */}
               <div className="flex items-center gap-1 text-[11px] flex-wrap">
                 {[
                   { label: "B", wrap: "*", cls: "font-bold" },
@@ -792,7 +1022,6 @@ export default function CrmDrawer({ open, accountId, chatContext, onClose }: Crm
                         </button>
                       </div>
                     </div>
-                    {/* WhatsApp-rendered preview of template body */}
                     <div className="text-[11px] text-gray-400">
                       <WaMessage body={tpl.body} showLinkPreview={false} />
                     </div>

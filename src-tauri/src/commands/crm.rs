@@ -239,6 +239,26 @@ pub async fn crm_insert_draft(
     manager::insert_draft(&app, &account_id, &text).map_err(|e| e.to_string())
 }
 
+/// Open a WhatsApp chat for `phone` inside the active account's WebView2.
+#[tauri::command]
+pub async fn crm_open_chat(
+    app: AppHandle,
+    account_id: String,
+    phone: String,
+) -> Result<(), String> {
+    use tauri::Manager;
+    let digits: String = phone.chars().filter(|c| c.is_ascii_digit()).collect();
+    if digits.is_empty() {
+        return Err("Phone number has no digits".into());
+    }
+    let label = format!("wa_{account_id}");
+    let webview = app
+        .get_webview(&label)
+        .ok_or_else(|| format!("Webview {label} not found"))?;
+    let js = format!("window.location.href = 'https://web.whatsapp.com/send?phone={digits}';");
+    webview.eval(&js).map_err(|e| e.to_string())
+}
+
 /// Notify the webview manager when the right-side CRM drawer opens or closes,
 /// so the active WhatsApp webview resizes without overlapping the drawer.
 #[tauri::command]

@@ -105,8 +105,8 @@ export default function QuickReplyBar({ accountId }: QuickReplyBarProps) {
   }
 
   return (
-    <div className="flex flex-col gap-1 p-2 border-t border-dona-border bg-dona-dark/80">
-      <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
+    <div className="flex flex-col gap-1.5 p-2 border-t border-dona-border bg-dona-dark/80">
+      <div className="flex flex-col gap-1.5">
         {replies.map((r) =>
           editing === r.id ? (
             // Inline edit mode

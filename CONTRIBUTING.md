@@ -12,7 +12,7 @@ Thank you for your interest! Before opening a PR, read the rules below.
 
 ## PR Checklist
 
-- [ ] I have read `CLAUDE.md` and the compliance rules above
+- [ ] I have read the compliance rules above
 - [ ] My code does not add any send, auto-reply, bulk, or scheduled messaging feature
 - [ ] All UI strings go through `react-i18next` (en, fr, bn)
 - [ ] `cargo fmt`, `cargo clippy -D warnings`, `cargo test --workspace` all pass

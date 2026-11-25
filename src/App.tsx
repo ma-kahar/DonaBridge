@@ -26,6 +26,7 @@ export default function App() {
   const [addOpen, setAddOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [crmOpen, setCrmOpen] = useState(false);
+  const [crmExpanded, setCrmExpanded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [locked, setLocked] = useState(false);
   const [helloAvailable, setHelloAvailable] = useState(false);
@@ -225,6 +226,8 @@ export default function App() {
         accountId={activeAccountId}
         chatContext={chatContext}
         onClose={() => setCrmOpen(false)}
+        expanded={crmExpanded}
+        onToggleExpand={() => setCrmExpanded((prev) => !prev)}
       />
 
       <AddAccountModal

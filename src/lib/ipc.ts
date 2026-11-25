@@ -166,6 +166,11 @@ export async function crmInsertDraft(accountId: string, text: string): Promise<v
   return invoke<void>("crm_insert_draft", { accountId, text });
 }
 
+export async function crmOpenChat(accountId: string, phone: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("crm_open_chat", { accountId, phone });
+}
+
 export async function crmSetDrawerOpen(open: boolean): Promise<void> {
   if (!isTauri()) return;
   return invoke<void>("crm_set_drawer_open", { open });
