@@ -121,6 +121,13 @@ pub fn run() {
                 .expect("Could not resolve AppData directory");
             dona_core::db::init(&app_data)?;
 
+            // Ensure any pending WAL frames from an unexpected shutdown/restart are flushed
+            {
+                let conn = dona_core::db::get().lock();
+                let _ = conn
+                    .execute_batch("PRAGMA synchronous = FULL; PRAGMA wal_checkpoint(TRUNCATE);");
+            }
+
             // Clean up any WebView2 folders queued from deleted accounts (Blueprint §3 #15)
             let pending_deletes = {
                 let conn = dona_core::db::get().lock();

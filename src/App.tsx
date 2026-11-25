@@ -68,28 +68,37 @@ export default function App() {
       setHelloAvailable(status.hello_available);
     });
 
-    listAccounts().then((list) => {
-      if (cancelled || list.length === 0) return;
-      const mapped: Account[] = list.map((a) => ({
-        id: a.id,
-        name: a.name,
-        color: a.color,
-        iconText: a.icon_text,
-        category: a.category,
-        muted: a.muted,
-        sortOrder: a.sort_order,
-        unreadCount: 0,
-        avatarDataUrl: a.avatar_data_url,
-        hasLock: a.has_lock,
-      }));
-      setAccounts(mapped);
-      const firstUnlocked = mapped.find((a) => !a.hasLock) ?? mapped[0];
-      if (!firstUnlocked.hasLock) {
-        setActiveAccount(firstUnlocked.id);
-        void switchAccount(firstUnlocked.id);
-      }
-      void prewarmAccounts(firstUnlocked.hasLock ? null : firstUnlocked.id);
-    });
+    const loadSavedAccounts = (attempt = 0) => {
+      listAccounts()
+        .then((list) => {
+          if (cancelled || list.length === 0) return;
+          const mapped: Account[] = list.map((a) => ({
+            id: a.id,
+            name: a.name,
+            color: a.color,
+            iconText: a.icon_text,
+            category: a.category,
+            muted: a.muted,
+            sortOrder: a.sort_order,
+            unreadCount: 0,
+            avatarDataUrl: a.avatar_data_url,
+            hasLock: a.has_lock,
+          }));
+          setAccounts(mapped);
+          const firstUnlocked = mapped.find((a) => !a.hasLock) ?? mapped[0];
+          if (!firstUnlocked.hasLock) {
+            setActiveAccount(firstUnlocked.id);
+            void switchAccount(firstUnlocked.id);
+          }
+          void prewarmAccounts(firstUnlocked.hasLock ? null : firstUnlocked.id);
+        })
+        .catch(() => {
+          if (!cancelled && attempt < 3) {
+            setTimeout(() => loadSavedAccounts(attempt + 1), 500);
+          }
+        });
+    };
+    loadSavedAccounts();
     return () => {
       cancelled = true;
     };
