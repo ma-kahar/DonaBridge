@@ -126,6 +126,13 @@ pnpm test --run
 pnpm tauri build
 ```
 
+> **Note for OneDrive / synced folders:** Windows Controlled Folder Access can
+> block the esbuild binary from writing its cache inside `node_modules`, which
+> makes Vite fail with “Access is denied”. `pnpm dev` now copies the esbuild
+> binary to a local temp folder and moves Vite's dependency cache out of the
+> project, so development works from a synced folder without disabling
+> security features.
+
 ---
 
 ## 📄 License

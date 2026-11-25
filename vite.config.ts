@@ -1,3 +1,4 @@
+import os from "node:os";
 import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -6,6 +7,10 @@ const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
   plugins: [react()],
+  // Keep the dependency cache outside the project. Projects stored in OneDrive
+  // (or any synced folder) cannot reliably create node_modules/.vite temp files
+  // and esbuild fails with "Access is denied".
+  cacheDir: path.join(os.tmpdir(), "dona-bridge-vite-cache"),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
