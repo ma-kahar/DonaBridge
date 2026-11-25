@@ -1,8 +1,6 @@
 import {
   BarChart3,
   Bell,
-  Briefcase,
-  CheckSquare,
   Columns3,
   Copy,
   Download,
@@ -13,6 +11,7 @@ import {
   MessageSquare,
   Minimize2,
   Moon,
+  MoreHorizontal,
   Pencil,
   Pin,
   PinOff,
@@ -22,7 +21,6 @@ import {
   Sun,
   Trash2,
   Upload,
-  Users,
   X,
 } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useState } from "react";
@@ -50,6 +48,7 @@ import { useAppStore } from "../../store";
 import CopilotPanel from "../copilot/CopilotPanel";
 import ProjectsPanel from "./ProjectsPanel";
 import ContactDetailPanel from "./ContactDetailPanel";
+import CrmDashboard from "./CrmDashboard";
 import DealsPanel from "./DealsPanel";
 import ReportsPanel from "./ReportsPanel";
 import TasksPanel from "./TasksPanel";
@@ -57,8 +56,6 @@ import { CONTACT_STAGES } from "./stages";
 import EmojiPickerPopover from "../../components/EmojiPickerPopover";
 import QuickReplyBar from "../../components/QuickReplyBar";
 import WaMessage from "../../components/WaMessage";
-
-type NavSection = "Workspace" | "Library" | "Insights";
 
 function pinnedKey(accountId: string) {
   return `dona_crm_pinned_${accountId}`;
@@ -111,6 +108,8 @@ export default function CrmDrawer({
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState<string>("");
   const [selectedContact, setSelectedContact] = useState<ContactDto | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [contactsView, setContactsView] = useState<"dashboard" | "list">("dashboard");
 
   const [contacts, setContacts] = useState<ContactDto[]>([]);
   const [reminders, setReminders] = useState<ReminderDto[]>([]);
@@ -146,6 +145,9 @@ export default function CrmDrawer({
     if (open && accountId) {
       void refresh();
       setPinned(loadPinned(accountId));
+      setContactsView("dashboard");
+      setSearch("");
+      setSelectedContact(null);
     }
   }, [open, accountId, refresh]);
 
@@ -274,69 +276,52 @@ export default function CrmDrawer({
     await crmOpenChat(accountId, phone_e164);
   }
 
-  const navItems: { id: Tab; label: string; icon: React.ReactNode; section: NavSection }[] = [
-    {
-      id: "contacts",
-      label: t("crm.contacts"),
-      icon: <Users className="w-4 h-4" />,
-      section: "Workspace",
-    },
-    {
-      id: "pipeline",
-      label: t("crm.pipeline"),
-      icon: <Briefcase className="w-4 h-4" />,
-      section: "Workspace",
-    },
-    {
-      id: "tasks",
-      label: t("crm.tasks"),
-      icon: <CheckSquare className="w-4 h-4" />,
-      section: "Workspace",
-    },
+  const navItems: { id: Tab; label: string }[] = [
+    { id: "contacts", label: t("crm.contacts") },
+    { id: "pipeline", label: t("crm.pipeline") },
+    { id: "tasks", label: t("crm.tasks") },
+    { id: "reports", label: t("crm.reports") },
+  ];
+
+  const moreItems: { id: Tab; label: string; icon: React.ReactNode }[] = [
     {
       id: "reminders",
       label: t("crm.reminders"),
-      icon: <Bell className="w-4 h-4" />,
-      section: "Workspace",
+      icon: <Bell className="w-3.5 h-3.5" />,
     },
     {
       id: "projects",
       label: "Projects",
-      icon: <FolderKanban className="w-4 h-4" />,
-      section: "Library",
+      icon: <FolderKanban className="w-3.5 h-3.5" />,
     },
     {
       id: "templates",
       label: "Templates",
-      icon: <FileText className="w-4 h-4" />,
-      section: "Library",
+      icon: <FileText className="w-3.5 h-3.5" />,
     },
     {
       id: "quickreplies",
       label: "Quick Replies",
-      icon: <MessageSquare className="w-4 h-4" />,
-      section: "Library",
-    },
-    {
-      id: "reports",
-      label: t("crm.reports"),
-      icon: <BarChart3 className="w-4 h-4" />,
-      section: "Insights",
+      icon: <MessageSquare className="w-3.5 h-3.5" />,
     },
     {
       id: "copilot",
       label: t("copilot.title"),
-      icon: <Sparkles className="w-4 h-4" />,
-      section: "Insights",
+      icon: <Sparkles className="w-3.5 h-3.5" />,
     },
   ];
 
   function selectTab(id: Tab) {
     setTab(id);
-    if (id === "contacts") setSelectedContact(null);
+    setMoreOpen(false);
+    if (id === "contacts") {
+      setSelectedContact(null);
+      setContactsView("dashboard");
+      setSearch("");
+    }
   }
 
-  const widthClass = expanded ? "fixed inset-0 z-40 w-screen h-screen" : "w-[340px]";
+  const widthClass = expanded ? "fixed inset-0 z-40 w-screen h-screen" : "w-[420px]";
 
   return (
     <aside
@@ -347,6 +332,9 @@ export default function CrmDrawer({
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-dona-border bg-dona-panel2 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
+          <span className="w-6 h-6 rounded-lg bg-dona-accent/10 text-dona-accent flex items-center justify-center shrink-0">
+            <BarChart3 className="w-3.5 h-3.5" />
+          </span>
           <h2 className="font-semibold text-dona-fg text-sm whitespace-nowrap">
             {expanded ? "Dona CRM" : t("crm.title")}
           </h2>
@@ -361,7 +349,7 @@ export default function CrmDrawer({
           <button
             type="button"
             onClick={toggleTheme}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-dona-muted hover:text-dona-fg transition-colors"
             title={theme === "dark" ? "Light mode" : "Dark mode"}
           >
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -370,7 +358,7 @@ export default function CrmDrawer({
           <button
             type="button"
             onClick={onToggleExpand}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-dona-muted hover:text-dona-fg transition-colors"
             title={expanded ? "Collapse CRM" : "Expand CRM"}
           >
             {expanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -379,13 +367,74 @@ export default function CrmDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="text-white/50 hover:text-white transition-colors"
+            className="text-dona-muted hover:text-dona-fg transition-colors"
             aria-label={t("common.close")}
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {/* ── Tabs ── */}
+      <div className="relative flex items-center gap-0.5 px-2 border-b border-dona-border bg-dona-panel2 shrink-0">
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => selectTab(item.id)}
+            className={`relative px-3 py-2.5 text-xs font-medium transition-colors ${
+              tab === item.id ? "text-dona-accent" : "text-dona-muted hover:text-dona-fg"
+            }`}
+          >
+            {item.label}
+            {tab === item.id && (
+              <span className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full bg-dona-accent" />
+            )}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setMoreOpen((open) => !open)}
+          className={`ml-auto p-2 rounded-lg transition-colors ${
+            moreItems.some((item) => item.id === tab)
+              ? "text-dona-accent bg-dona-accent/10"
+              : "text-dona-muted hover:text-dona-fg hover:bg-dona-panel"
+          }`}
+          title="More sections"
+          aria-label="More sections"
+        >
+          <MoreHorizontal className="w-4 h-4" />
+        </button>
+        {moreOpen && (
+          <>
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label="Close menu"
+              className="fixed inset-0 z-40 cursor-default"
+              onClick={() => setMoreOpen(false)}
+            />
+            <div className="absolute right-2 top-full z-50 mt-1 w-48 rounded-xl border border-dona-border bg-dona-panel p-1 shadow-2xl shadow-black/30">
+              {moreItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => selectTab(item.id)}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                    tab === item.id
+                      ? "bg-dona-accent/10 text-dona-accent"
+                      : "text-dona-fg hover:bg-dona-panel2"
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
       {/* ── Content ── */}
       <div
         className={`flex-1 min-h-0 overflow-y-auto space-y-3 ${
@@ -418,6 +467,36 @@ export default function CrmDrawer({
             }
           >
             <div className={expanded || !selectedContact ? "min-w-0 space-y-3" : "hidden"}>
+            {contactsView === "dashboard" && !search ? (
+              <CrmDashboard
+                accountId={accountId}
+                contacts={contacts}
+                search={search}
+                onSearch={(value) => {
+                  setSearch(value);
+                  if (value) setContactsView("list");
+                }}
+                onAddContact={() => setContactsView("list")}
+                onCreatePipeline={() => selectTab("pipeline")}
+                onAddTask={() => selectTab("tasks")}
+                onViewReports={() => selectTab("reports")}
+                onOpenCopilot={() => selectTab("copilot")}
+                onViewAllContacts={() => setContactsView("list")}
+                onSelectContact={(contact) => setSelectedContact(contact)}
+                onOpenChat={(contact) => void handleOpenChat(contact.phone_e164, contact)}
+              />
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContactsView("dashboard");
+                    setSearch("");
+                  }}
+                  className="inline-flex items-center gap-1 text-xs text-dona-accent hover:underline"
+                >
+                  ← Dashboard
+                </button>
             {/* Add Contact */}
             <form onSubmit={handleAddContact} className="space-y-2">
               <input
@@ -654,6 +733,8 @@ export default function CrmDrawer({
                   </li>
                 ))}
               </ul>
+            )}
+              </>
             )}
             </div>
             {(selectedContact || expanded) && (
@@ -949,38 +1030,6 @@ export default function CrmDrawer({
           </>
         )}
       </div>
-
-      {/* ── Bottom navigation ── */}
-      <nav
-        className={`shrink-0 border-t border-dona-border bg-dona-panel2 ${
-          expanded ? "flex items-stretch" : "grid grid-cols-3 gap-1.5 p-2"
-        }`}
-      >
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => selectTab(item.id)}
-            title={item.label}
-            className={`flex flex-col items-center justify-center gap-1 px-1 transition-colors ${
-              expanded
-                ? "flex-1 text-[10px] py-2 border-t-2 -mt-px"
-                : "rounded-xl text-[9px] leading-tight py-2.5 border"
-            } ${
-              tab === item.id
-                ? expanded
-                  ? "text-dona-accent bg-dona-accent/10 border-dona-accent"
-                  : "bg-dona-accent/15 text-dona-accent border-dona-accent/35 shadow-sm shadow-black/10"
-                : expanded
-                  ? "text-dona-muted hover:text-dona-fg hover:bg-dona-panel border-transparent"
-                  : "text-dona-muted border-transparent hover:text-dona-fg hover:bg-dona-panel"
-            }`}
-          >
-            {item.icon}
-            <span className="truncate max-w-full font-medium">{item.label}</span>
-          </button>
-        ))}
-      </nav>
     </aside>
   );
 }

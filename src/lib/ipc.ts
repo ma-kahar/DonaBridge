@@ -32,6 +32,7 @@ export interface ContactDto {
   phone_e164: string;
   display_name: string | null;
   stage: string;
+  updated_at?: string | null;
 }
 
 export interface NoteDto {
@@ -89,7 +90,11 @@ export async function accountClearPin(accountId: string): Promise<void> {
 }
 
 export async function upsertAccount(info: AccountInfo): Promise<AccountInfo> {
-  if (!isTauri()) return info;
+  if (!isTauri()) {
+    // Browser preview: keep the account in React state so the UI can be viewed
+    // outside the desktop shell.
+    return { ...info, id: info.id || `preview-${Date.now()}` };
+  }
   return invoke<AccountInfo>("upsert_account", { info });
 }
 

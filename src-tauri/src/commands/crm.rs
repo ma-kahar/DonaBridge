@@ -19,6 +19,8 @@ pub struct ContactDto {
     pub phone_e164: String,
     pub display_name: Option<String>,
     pub stage: String,
+    #[serde(default)]
+    pub updated_at: Option<String>,
 }
 
 impl From<Contact> for ContactDto {
@@ -29,6 +31,7 @@ impl From<Contact> for ContactDto {
             phone_e164: c.phone_e164,
             display_name: c.display_name,
             stage: c.stage,
+            updated_at: c.updated_at.map(|d| d.to_rfc3339()),
         }
     }
 }

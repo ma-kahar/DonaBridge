@@ -18,12 +18,13 @@ describe("App", () => {
     expect(screen.getByLabelText(/Account name/i)).toBeInTheDocument();
   });
 
-  it("toggles the CRM and Copilot drawer from the dock", () => {
+  it("opens the CRM drawer with its primary tabs", () => {
     render(<App />);
     const crmButton = screen.getByRole("button", { name: "CRM" });
     fireEvent.click(crmButton);
     expect(screen.getByText("Contacts")).toBeInTheDocument();
-    expect(screen.getByText("AI Copilot")).toBeInTheDocument();
+    expect(screen.getByText("Pipeline")).toBeInTheDocument();
+    expect(screen.getByText("Reports")).toBeInTheDocument();
   });
 
   it("opens Settings modal and Lock screen", async () => {

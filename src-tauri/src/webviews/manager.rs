@@ -13,8 +13,8 @@ use tauri::{
 
 use super::init_script;
 
-/// Width in logical pixels reserved for the right CRM drawer when open (`w-[340px]`).
-const DRAWER_WIDTH: f64 = 340.0;
+/// Width in logical pixels reserved for the right CRM drawer when open (`w-[420px]`).
+const DRAWER_WIDTH: f64 = 420.0;
 /// Height of the bottom application taskbar (`h-12` = 48px).
 const TASKBAR_HEIGHT: f64 = 48.0;
 

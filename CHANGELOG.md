@@ -46,6 +46,16 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **Pro CRM dashboard**: the right-hand CRM panel is now 420 px wide with top
+  tabs (Contacts, Pipeline, Tasks, Reports), contact/win-rate/revenue metric
+  cards, quick actions, recent contacts and an AI Copilot card. Secondary
+  sections (Reminders, Projects, Templates, Quick Replies, AI) live in the “⋯”
+  menu.
+- **Account dropdown taskbar**: the bottom bar now shows the active account with
+  a switcher menu (avatars, edit, add), plus CRM, Search, Add, Lock, Settings,
+  Online status and the Dona Bridge brand.
+- **Contact recency**: contacts expose their last-updated time so recent-contact
+  rows show “Active · 2m ago”.
 - **WhatsApp colour system**: the full app now uses WhatsApp's dark/light palette
   and signature teal accent. Light mode text, inputs, borders and buttons are
   contrast-corrected.

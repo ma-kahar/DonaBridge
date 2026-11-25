@@ -38,8 +38,10 @@
 - **Privacy & App Lock:** Lock the entire app or individual accounts with a PIN or **Windows Hello**.
 
 ### 2. Built-in Lightweight CRM (`Ctrl+B`)
-Open the CRM drawer from the sidebar — or click the **Expand (`⛶`)** button in the CRM header to use it full-width. Press `Esc` to return to the drawer.
+Open the CRM drawer from the taskbar — or click the **Expand (`⛶`)** button to use it full-width. Press `Esc` to return to the drawer.
 
+- **CRM dashboard (`Contacts` tab):** metric cards for total contacts, conversion and revenue, quick actions, recent contacts with one-tap chat, and an AI Copilot card.
+- **Top tabs:** Contacts, Pipeline, Tasks and Reports; Reminders, Projects, Templates, Quick Replies and AI Copilot are one click away under “⋯”.
 - **Deals pipeline (`Pipeline` tab):** create deals with value, currency, probability and expected close date. Custom pipelines and stages (colour, Won/Lost flags), drag deals between stages, column totals and pipeline value.
 - **Contact timeline & custom fields:** every contact detail has a chronological timeline (notes, stage changes, deals, tasks) and user-defined fields (text, number, date, select) for Company, City, Birthday, etc.
 - **Unified tasks (`Tasks` tab):** link tasks to a contact and deal, prioritise them and filter by Today / Upcoming / Overdue / Done. Due tasks raise desktop notifications.
