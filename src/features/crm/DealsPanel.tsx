@@ -601,8 +601,8 @@ export default function DealsPanel({ accountId, contacts, expanded }: DealsPanel
                   const id = e.dataTransfer.getData("text/deal-id");
                   if (id) void handleMove(id, stage.id);
                 }}
-                className={`rounded-lg bg-dona-panel/60 border border-dona-border p-2 space-y-1.5 shrink-0 ${
-                  expanded ? "w-[280px]" : "w-[220px]"
+                className={`rounded-lg bg-dona-panel/60 border border-dona-border p-2 space-y-1.5 min-h-[180px] ${
+                  expanded ? "flex-1 min-w-[220px]" : "w-[220px] shrink-0"
                 }`}
               >
                 <button

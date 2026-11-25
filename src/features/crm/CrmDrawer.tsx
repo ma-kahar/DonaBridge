@@ -68,6 +68,8 @@ import WaMessage from "../../components/WaMessage";
 
 const STAGES = ["new", "follow_up", "negotiating", "won", "do_not_contact"] as const;
 
+type NavSection = "Workspace" | "Library" | "Insights";
+
 function pinnedKey(accountId: string) {
   return `dona_crm_pinned_${accountId}`;
 }
@@ -111,7 +113,8 @@ export default function CrmDrawer({
   onToggleExpand,
 }: CrmDrawerProps) {
   const { t } = useTranslation();
-  const { theme, toggleTheme } = useAppStore();
+  const { theme, toggleTheme, accounts: allAccounts } = useAppStore();
+  const activeAccount = allAccounts.find((a) => a.id === accountId) ?? null;
 
   const [tab, setTab] = useState<Tab>("contacts");
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
@@ -346,19 +349,90 @@ export default function CrmDrawer({
     await crmOpenChat(accountId, phone_e164);
   }
 
+  const navItems: { id: Tab; label: string; icon: React.ReactNode; section: NavSection }[] = [
+    {
+      id: "contacts",
+      label: t("crm.contacts"),
+      icon: <Users className="w-4 h-4" />,
+      section: "Workspace",
+    },
+    {
+      id: "pipeline",
+      label: t("crm.pipeline"),
+      icon: <Briefcase className="w-4 h-4" />,
+      section: "Workspace",
+    },
+    {
+      id: "tasks",
+      label: t("crm.tasks"),
+      icon: <CheckSquare className="w-4 h-4" />,
+      section: "Workspace",
+    },
+    {
+      id: "reminders",
+      label: t("crm.reminders"),
+      icon: <Bell className="w-4 h-4" />,
+      section: "Workspace",
+    },
+    {
+      id: "projects",
+      label: "Projects",
+      icon: <FolderKanban className="w-4 h-4" />,
+      section: "Library",
+    },
+    {
+      id: "templates",
+      label: t("crm.templates"),
+      icon: <FileText className="w-4 h-4" />,
+      section: "Library",
+    },
+    {
+      id: "quickreplies",
+      label: "Quick replies",
+      icon: <MessageSquare className="w-4 h-4" />,
+      section: "Library",
+    },
+    {
+      id: "reports",
+      label: t("crm.reports"),
+      icon: <BarChart3 className="w-4 h-4" />,
+      section: "Insights",
+    },
+    {
+      id: "copilot",
+      label: t("copilot.title"),
+      icon: <Sparkles className="w-4 h-4" />,
+      section: "Insights",
+    },
+  ];
+
+  function selectTab(id: Tab) {
+    setTab(id);
+    if (id === "contacts") setSelectedContact(null);
+  }
+
   const widthClass = expanded ? "fixed inset-0 z-40 w-screen h-screen" : "w-[340px]";
 
   return (
     <aside
-      className={`${widthClass} shrink-0 h-full bg-dona-dark flex flex-col ${
-        expanded ? "" : "border-l border-dona-border transition-all duration-200"
+      className={`${widthClass} shrink-0 h-full bg-dona-dark ${
+        expanded
+          ? "grid grid-cols-[13rem_1fr] grid-rows-[auto_1fr]"
+          : "flex flex-col border-l border-dona-border transition-all duration-200"
       }`}
     >
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-dona-border shrink-0">
-        <h2 className="font-semibold text-white text-sm">
-          {expanded ? "Dona CRM — full screen" : t("crm.title")}
-        </h2>
+      <div className="col-span-2 flex items-center justify-between gap-3 px-4 py-3 border-b border-dona-border shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="font-semibold text-white text-sm whitespace-nowrap">
+            {expanded ? "Dona CRM" : t("crm.title")}
+          </h2>
+          {expanded && activeAccount && (
+            <span className="text-[11px] text-gray-300 bg-white/5 border border-dona-border rounded-full px-2 py-0.5 truncate max-w-[220px]">
+              {activeAccount.name}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           {/* Light / Dark toggle */}
           <button
@@ -390,42 +464,60 @@ export default function CrmDrawer({
         </div>
       </div>
 
-      {/* ── Tabs ── */}
-      <div className="flex border-b border-dona-border text-[10px] overflow-x-auto shrink-0">
-        {(
-          [
-            { id: "contacts", icon: <Users className="w-3.5 h-3.5" />, label: t("crm.contacts") },
-            { id: "pipeline", icon: <Briefcase className="w-3.5 h-3.5" />, label: t("crm.pipeline") },
-            { id: "tasks", icon: <CheckSquare className="w-3.5 h-3.5" />, label: t("crm.tasks") },
-            { id: "reminders", icon: <Bell className="w-3.5 h-3.5" />, label: t("crm.reminders") },
-            { id: "projects", icon: <FolderKanban className="w-3.5 h-3.5" />, label: "Projects" },
-            { id: "templates", icon: <FileText className="w-3.5 h-3.5" />, label: t("crm.templates") },
-            { id: "quickreplies", icon: <MessageSquare className="w-3.5 h-3.5" />, label: "Quick" },
-            { id: "reports", icon: <BarChart3 className="w-3.5 h-3.5" />, label: t("crm.reports") },
-            { id: "copilot", icon: <Sparkles className="w-3.5 h-3.5" />, label: t("copilot.title") },
-          ] as { id: Tab; icon: React.ReactNode; label: string }[]
-        ).map(({ id, icon, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => {
-              setTab(id);
-              if (id === "contacts") setSelectedContact(null);
-            }}
-            className={`flex-1 min-w-[58px] flex flex-col items-center justify-center gap-0.5 py-2 px-1 transition-colors ${
-              tab === id
-                ? "text-white border-b-2 border-blue-500 bg-white/5"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            {icon}
-            <span className="truncate max-w-full">{label}</span>
-          </button>
-        ))}
-      </div>
+      {/* ── Navigation ── */}
+      {expanded ? (
+        <nav className="row-start-2 col-start-1 border-r border-dona-border p-2.5 space-y-4 overflow-y-auto min-h-0">
+          {(["Workspace", "Library", "Insights"] as NavSection[]).map((section) => (
+            <div key={section} className="space-y-1">
+              <p className="px-2 text-[9px] font-semibold uppercase tracking-wider text-gray-500">
+                {section}
+              </p>
+              {navItems
+                .filter((item) => item.section === section)
+                .map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => selectTab(item.id)}
+                    className={`w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors ${
+                      tab === item.id
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-300 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    {item.icon}
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                ))}
+            </div>
+          ))}
+        </nav>
+      ) : (
+        <nav className="grid grid-cols-3 gap-1 p-2 border-b border-dona-border shrink-0">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => selectTab(item.id)}
+              className={`flex flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-[9px] leading-tight transition-colors ${
+                tab === item.id
+                  ? "bg-blue-600 text-white"
+                  : "text-gray-400 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              {item.icon}
+              <span className="truncate max-w-full">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
 
       {/* ── Content ── */}
-      <div className={`flex-1 min-h-0 overflow-y-auto space-y-3 ${expanded ? "p-4" : "p-3"}`}>
+      <div
+        className={`${expanded ? "row-start-2 col-start-2" : "flex-1"} min-h-0 overflow-y-auto space-y-3 ${
+          expanded ? "p-4 xl:p-6" : "p-3"
+        }`}
+      >
         {!accountId ? (
           <p className="text-xs text-gray-500 text-center py-8">{t("accounts.selectAccount")}</p>
         ) : tab === "pipeline" ? (
@@ -447,7 +539,7 @@ export default function CrmDrawer({
           </div>
         ) : tab === "contacts" && selectedContact ? (
           /* ── Contact Detail ── */
-          <div className="space-y-3">
+          <div className={`space-y-3 ${expanded ? "max-w-3xl" : ""}`}>
             <button
               type="button"
               onClick={() => setSelectedContact(null)}
@@ -755,7 +847,13 @@ export default function CrmDrawer({
               </div>
             ) : (
               /* List view */
-              <ul className="space-y-2">
+              <ul
+                className={
+                  expanded
+                    ? "grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-2"
+                    : "space-y-2"
+                }
+              >
                 {filteredContacts.map((c) => (
                   <li
                     key={c.id}

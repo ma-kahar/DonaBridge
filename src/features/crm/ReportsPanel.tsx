@@ -86,7 +86,7 @@ export default function ReportsPanel({ accountId }: ReportsPanelProps) {
   const maxStageValue = Math.max(1, ...(report?.stages.map((s) => s.value) ?? [1]));
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 max-w-5xl">
       <div className="flex items-center gap-1.5">
         <BarChart3 className="w-4 h-4 text-blue-400 shrink-0" />
         <select
@@ -112,7 +112,7 @@ export default function ReportsPanel({ accountId }: ReportsPanelProps) {
         <p className="text-xs text-gray-500 text-center py-6">Loading report…</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
             <Kpi
               label="Open pipeline"
               value={money(report.open_value, report.currency)}
