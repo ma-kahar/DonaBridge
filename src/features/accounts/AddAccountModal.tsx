@@ -87,16 +87,22 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
     try {
       const id = editingAccount ? editingAccount.id : "";
       const initials = (iconText.trim() || trimmed.slice(0, 2)).toUpperCase().slice(0, 2);
-      const saved = await upsertAccount({
-        id,
-        name: trimmed,
-        color,
-        icon_text: initials,
-        category,
-        muted,
-        sort_order: editingAccount ? editingAccount.sortOrder : accounts.length,
-        avatar_data_url: avatarDataUrl ?? "",
-      });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Request timed out. Please restart Dona Bridge.")), 8000)
+      );
+      const saved = await Promise.race([
+        upsertAccount({
+          id,
+          name: trimmed,
+          color,
+          icon_text: initials,
+          category,
+          muted,
+          sort_order: editingAccount ? editingAccount.sortOrder : accounts.length,
+          avatar_data_url: avatarDataUrl ?? "",
+        }),
+        timeoutPromise,
+      ]);
 
       let updatedLock = hasLock;
       if (pinInput.trim().length >= 4) {
