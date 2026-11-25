@@ -35,6 +35,7 @@
     "allow-save-auto-backup-settings",
     "allow-create-auto-backup-now",
     "allow-backup-recovery-code",
+    "allow-set-backup-recovery-code",
     "allow-crm-list-contacts",
     "allow-crm-upsert-contact",
     "allow-crm-delete-contact",

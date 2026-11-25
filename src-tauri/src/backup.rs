@@ -659,6 +659,16 @@ pub fn backup_recovery_code() -> Result<String, String> {
         .ok_or_else(|| "Automatic backups are not configured yet".to_string())
 }
 
+/// Install a recovery code created on another PC so existing automatic backups
+/// in a shared/synced folder remain readable.
+pub fn set_backup_recovery_code(code: &str) -> Result<(), String> {
+    let code = code.trim();
+    if code.len() < 8 {
+        return Err("Recovery code is too short".into());
+    }
+    secrets::set_secret(AUTO_BACKUP_KEY, code)
+}
+
 pub fn create_auto_backup_now(app: &AppHandle) -> Result<BackupResult, String> {
     let (folder, keep, device) = {
         let conn = dona_core::db::get().lock();

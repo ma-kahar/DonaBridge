@@ -734,6 +734,11 @@ export async function backupRecoveryCode(): Promise<string> {
   return invoke<string>("backup_recovery_code");
 }
 
+export async function setBackupRecoveryCode(code: string): Promise<void> {
+  if (!isTauri()) throw new Error("Backups are only available in the desktop app");
+  return invoke<void>("set_backup_recovery_code", { code });
+}
+
 // ── MCP Server IPC ───────────────────────────────────────────────────────────
 
 export interface McpStatus {

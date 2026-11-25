@@ -155,6 +155,7 @@ pub fn run() {
             commands::data::save_auto_backup_settings,
             commands::data::create_auto_backup_now,
             commands::data::backup_recovery_code,
+            commands::data::set_backup_recovery_code,
         ])
         // ── Setup ──────────────────────────────────────────────────────────
         .setup(|app| {

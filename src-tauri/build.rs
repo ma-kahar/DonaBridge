@@ -91,6 +91,7 @@ fn main() {
             "save_auto_backup_settings",
             "create_auto_backup_now",
             "backup_recovery_code",
+            "set_backup_recovery_code",
         ]),
     ))
     .expect("failed to run tauri-build");

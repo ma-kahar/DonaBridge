@@ -128,3 +128,13 @@ pub async fn backup_recovery_code() -> Result<String, String> {
         .await
         .map_err(|e| e.to_string())?
 }
+
+/// Install a recovery code from another PC for a shared backup folder.
+#[tauri::command]
+pub async fn set_backup_recovery_code(code: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        backup::set_backup_recovery_code(&code).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}

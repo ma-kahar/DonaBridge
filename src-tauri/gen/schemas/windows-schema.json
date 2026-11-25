@@ -819,6 +819,12 @@
           "markdownDescription": "Enables the security_unlock_pin command without any pre-configured scope."
         },
         {
+          "description": "Enables the set_backup_recovery_code command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-backup-recovery-code",
+          "markdownDescription": "Enables the set_backup_recovery_code command without any pre-configured scope."
+        },
+        {
           "description": "Enables the set_overlay_open command without any pre-configured scope.",
           "type": "string",
           "const": "allow-set-overlay-open",
@@ -1357,6 +1363,12 @@
           "type": "string",
           "const": "deny-security-unlock-pin",
           "markdownDescription": "Denies the security_unlock_pin command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_backup_recovery_code command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-backup-recovery-code",
+          "markdownDescription": "Denies the set_backup_recovery_code command without any pre-configured scope."
         },
         {
           "description": "Denies the set_overlay_open command without any pre-configured scope.",

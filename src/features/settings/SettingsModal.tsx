@@ -55,6 +55,7 @@ import {
   restoreEncrypted,
   restoreSnapshot,
   saveAutoBackupSettings,
+  setBackupRecoveryCode,
   securityClearPin,
   securityLockStatus,
   securitySetPin,
@@ -112,6 +113,7 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
   const [autoBusy, setAutoBusy] = useState(false);
   const [showRecoveryCode, setShowRecoveryCode] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
+  const [recoveryInput, setRecoveryInput] = useState("");
 
   const [groups, setGroups] = useState<AccountGroupDto[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
@@ -458,6 +460,21 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
       const code = await backupRecoveryCode();
       setRecoveryCode(code);
       setShowRecoveryCode(true);
+    } catch (err) {
+      setBackupStatus(String(err));
+    }
+  }
+
+  async function handleUseRecoveryCode() {
+    const code = recoveryInput.trim();
+    if (code.length < 8) return;
+    try {
+      await setBackupRecoveryCode(code);
+      setRecoveryInput("");
+      setBackupStatus(
+        "Recovery code saved. Existing backups in this folder can now be restored."
+      );
+      setAutoBackup(await autoBackupSettings());
     } catch (err) {
       setBackupStatus(String(err));
     }
@@ -1260,8 +1277,30 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
                         )}
                       </div>
 
-                      {showRecoveryCode && recoveryCode && (
-                        <div className="rounded-lg bg-amber-950/30 border border-amber-900/40 p-2.5 space-y-1.5">
+                      <div className="border-t border-dona-border/60 pt-2 space-y-1">
+                        <p className="text-[10px] text-gray-400">
+                          Restoring on another PC? Paste the recovery code created there.
+                        </p>
+                        <div className="flex gap-2">
+                          <input
+                            type="password"
+                            value={recoveryInput}
+                            onChange={(e) => setRecoveryInput(e.target.value)}
+                            placeholder="Recovery code"
+                            className="flex-1 min-w-0 rounded-lg bg-dona-panel border border-dona-border px-2.5 py-1.5 text-[11px] text-gray-200"
+                          />
+                          <button
+                            type="button"
+                            disabled={recoveryInput.trim().length < 8}
+                            onClick={() => void handleUseRecoveryCode()}
+                            className="px-2.5 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200 shrink-0"
+                          >
+                            Use code
+                          </button>
+                        </div>
+                      </div>
+
+                      {showRecoveryCode && recoveryCode && (                        <div className="rounded-lg bg-amber-950/30 border border-amber-900/40 p-2.5 space-y-1.5">
                           <p className="text-[10px] text-amber-200">
                             Save this code somewhere safe. It is the password needed to restore
                             these backups on another PC. Without it the files cannot be opened.
