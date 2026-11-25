@@ -417,6 +417,18 @@
           "markdownDescription": "Enables the ai_upsert_profile command without any pre-configured scope."
         },
         {
+          "description": "Enables the app_health command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-app-health",
+          "markdownDescription": "Enables the app_health command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the backup_encrypted command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-backup-encrypted",
+          "markdownDescription": "Enables the backup_encrypted command without any pre-configured scope."
+        },
+        {
           "description": "Enables the crm_add_note command without any pre-configured scope.",
           "type": "string",
           "const": "allow-crm-add-note",
@@ -537,6 +549,18 @@
           "markdownDescription": "Enables the delete_account command without any pre-configured scope."
         },
         {
+          "description": "Enables the delete_account_group command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-delete-account-group",
+          "markdownDescription": "Enables the delete_account_group command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the list_account_groups command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-list-account-groups",
+          "markdownDescription": "Enables the list_account_groups command without any pre-configured scope."
+        },
+        {
           "description": "Enables the list_accounts command without any pre-configured scope.",
           "type": "string",
           "const": "allow-list-accounts",
@@ -571,6 +595,18 @@
           "type": "string",
           "const": "allow-prewarm-accounts",
           "markdownDescription": "Enables the prewarm_accounts command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the reorder_accounts command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-reorder-accounts",
+          "markdownDescription": "Enables the reorder_accounts command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the restore_encrypted command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-restore-encrypted",
+          "markdownDescription": "Enables the restore_encrypted command without any pre-configured scope."
         },
         {
           "description": "Enables the secret_delete command without any pre-configured scope.",
@@ -645,6 +681,12 @@
           "markdownDescription": "Enables the upsert_account command without any pre-configured scope."
         },
         {
+          "description": "Enables the upsert_account_group command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-upsert-account-group",
+          "markdownDescription": "Enables the upsert_account_group command without any pre-configured scope."
+        },
+        {
           "description": "Enables the wa_auto_read command without any pre-configured scope.",
           "type": "string",
           "const": "allow-wa-auto-read",
@@ -667,6 +709,12 @@
           "type": "string",
           "const": "allow-wa-notify",
           "markdownDescription": "Enables the wa_notify command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the wa_session_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-wa-session-state",
+          "markdownDescription": "Enables the wa_session_state command without any pre-configured scope."
         },
         {
           "description": "Enables the wa_shortcut command without any pre-configured scope.",
@@ -751,6 +799,18 @@
           "type": "string",
           "const": "deny-ai-upsert-profile",
           "markdownDescription": "Denies the ai_upsert_profile command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the app_health command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-app-health",
+          "markdownDescription": "Denies the app_health command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the backup_encrypted command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-backup-encrypted",
+          "markdownDescription": "Denies the backup_encrypted command without any pre-configured scope."
         },
         {
           "description": "Denies the crm_add_note command without any pre-configured scope.",
@@ -873,6 +933,18 @@
           "markdownDescription": "Denies the delete_account command without any pre-configured scope."
         },
         {
+          "description": "Denies the delete_account_group command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-delete-account-group",
+          "markdownDescription": "Denies the delete_account_group command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the list_account_groups command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-list-account-groups",
+          "markdownDescription": "Denies the list_account_groups command without any pre-configured scope."
+        },
+        {
           "description": "Denies the list_accounts command without any pre-configured scope.",
           "type": "string",
           "const": "deny-list-accounts",
@@ -907,6 +979,18 @@
           "type": "string",
           "const": "deny-prewarm-accounts",
           "markdownDescription": "Denies the prewarm_accounts command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the reorder_accounts command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-reorder-accounts",
+          "markdownDescription": "Denies the reorder_accounts command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the restore_encrypted command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-restore-encrypted",
+          "markdownDescription": "Denies the restore_encrypted command without any pre-configured scope."
         },
         {
           "description": "Denies the secret_delete command without any pre-configured scope.",
@@ -981,6 +1065,12 @@
           "markdownDescription": "Denies the upsert_account command without any pre-configured scope."
         },
         {
+          "description": "Denies the upsert_account_group command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-upsert-account-group",
+          "markdownDescription": "Denies the upsert_account_group command without any pre-configured scope."
+        },
+        {
           "description": "Denies the wa_auto_read command without any pre-configured scope.",
           "type": "string",
           "const": "deny-wa-auto-read",
@@ -1003,6 +1093,12 @@
           "type": "string",
           "const": "deny-wa-notify",
           "markdownDescription": "Denies the wa_notify command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the wa_session_state command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-wa-session-state",
+          "markdownDescription": "Denies the wa_session_state command without any pre-configured scope."
         },
         {
           "description": "Denies the wa_shortcut command without any pre-configured scope.",

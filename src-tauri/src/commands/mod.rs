@@ -3,6 +3,7 @@
 pub mod accounts;
 pub mod ai;
 pub mod crm;
+pub mod data;
 pub mod mcp;
 pub mod security;
 pub mod wa;

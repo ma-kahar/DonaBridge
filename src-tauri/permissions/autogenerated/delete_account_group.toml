@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-delete-account-group"
+description = "Enables the delete_account_group command without any pre-configured scope."
+commands.allow = ["delete_account_group"]
+
+[[permission]]
+identifier = "deny-delete-account-group"
+description = "Denies the delete_account_group command without any pre-configured scope."
+commands.deny = ["delete_account_group"]

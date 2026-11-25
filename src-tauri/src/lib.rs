@@ -5,6 +5,7 @@ use tauri::Manager;
 use tracing::info;
 
 pub mod ai;
+pub mod backup;
 pub mod commands;
 pub mod lock;
 pub mod mcp;
@@ -17,17 +18,11 @@ pub mod windows;
 
 /// Application entry point called from main.rs.
 pub fn run() {
-    // Initialise structured logging (logs/dona-bridge.log in AppData)
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .init();
+    init_logging();
 
     info!("Dona Bridge starting up");
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         // ── Plugins ────────────────────────────────────────────────────────
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // Second launch: focus the existing window instead of opening another
@@ -45,6 +40,7 @@ pub fn run() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         // ── Commands ───────────────────────────────────────────────────────
         .invoke_handler(tauri::generate_handler![
             commands::accounts::list_accounts,
@@ -56,6 +52,10 @@ pub fn run() {
             commands::accounts::account_verify_pin,
             commands::accounts::account_clear_pin,
             commands::accounts::set_overlay_open,
+            commands::accounts::list_account_groups,
+            commands::accounts::upsert_account_group,
+            commands::accounts::delete_account_group,
+            commands::accounts::reorder_accounts,
             commands::crm::crm_list_contacts,
             commands::crm::crm_upsert_contact,
             commands::crm::crm_delete_contact,
@@ -104,29 +104,31 @@ pub fn run() {
             commands::wa::wa_chat_context,
             commands::wa::wa_shortcut,
             commands::wa::wa_auto_read,
+            commands::wa::wa_session_state,
             commands::wa_extra::fetch_link_preview,
             commands::wa_extra::set_dnd_schedule,
             commands::wa_extra::clear_dnd_schedule,
-            commands::wa_extra::backup_encrypted,
-            commands::wa_extra::restore_encrypted,
+            commands::data::backup_encrypted,
+            commands::data::restore_encrypted,
+            commands::data::app_health,
         ])
         // ── Setup ──────────────────────────────────────────────────────────
         .setup(|app| {
             tray::setup_tray(app)?;
 
-            // Initialise the database (migrations run automatically)
-            let app_data = app
+            // Initialise the database (migrations run automatically).
+            // Local AppData is used on purpose: the WebView2 profiles live
+            // there too, and Roaming AppData may be synced by OneDrive —
+            // SQLite + a syncing folder is a classic way to "lose" accounts.
+            let local_data = app
                 .path()
-                .app_data_dir()
-                .expect("Could not resolve AppData directory");
-            dona_core::db::init(&app_data)?;
+                .app_local_data_dir()
+                .expect("Could not resolve LocalAppData directory");
+            let legacy_data = app.path().app_data_dir().ok();
+            dona_core::db::init_with_legacy(&local_data, legacy_data.as_deref())?;
 
             // Ensure any pending WAL frames from an unexpected shutdown/restart are flushed
-            {
-                let conn = dona_core::db::get().lock();
-                let _ = conn
-                    .execute_batch("PRAGMA synchronous = FULL; PRAGMA wal_checkpoint(TRUNCATE);");
-            }
+            dona_core::db::checkpoint();
 
             // Clean up any WebView2 folders queued from deleted accounts (Blueprint §3 #15)
             let pending_deletes = {
@@ -177,15 +179,82 @@ pub fn run() {
             });
 
             info!("Setup complete");
+
+            // The window is created hidden (see tauri.conf.json). Autostart
+            // passes `--minimized`, so a login launch stays in the tray while
+            // a manual launch shows the window immediately.
+            let start_minimized = std::env::args().any(|arg| arg == "--minimized");
+            if let Some(window) = app.get_webview_window("main") {
+                if start_minimized {
+                    let _ = window.hide();
+                } else {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+
             Ok(())
         })
         .on_window_event(|window, event| {
             if window.label() == "main" {
-                if let tauri::WindowEvent::Resized(_) = event {
-                    webviews::manager::resize_all_webviews(window.app_handle());
+                match event {
+                    tauri::WindowEvent::Resized(_) => {
+                        webviews::manager::resize_all_webviews(window.app_handle());
+                    }
+                    tauri::WindowEvent::Destroyed => {
+                        // Last chance to flush the WAL before the process exits.
+                        dona_core::db::checkpoint();
+                    }
+                    _ => {}
                 }
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Dona Bridge");
+        .build(tauri::generate_context!())
+        .expect("error while building Dona Bridge");
+
+    app.run(|_app, event| {
+        if let tauri::RunEvent::Exit = event {
+            dona_core::db::checkpoint();
+            info!("Dona Bridge exited cleanly");
+        }
+    });
+}
+
+/// Initialise structured logging to stdout **and** to a rotating log file.
+///
+/// The file matters: without it a release build has no diagnostics at all,
+/// which is why "accounts disappeared after a reboot" was so hard to trace.
+fn init_logging() {
+    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+
+    let log_dir = std::env::var_os("LOCALAPPDATA")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir)
+        .join("com.makahar.donabridge")
+        .join("logs");
+
+    if let Err(err) = std::fs::create_dir_all(&log_dir) {
+        tracing_subscriber::registry()
+            .with(filter)
+            .with(fmt::layer())
+            .init();
+        eprintln!(
+            "Could not create log directory {}: {err}",
+            log_dir.display()
+        );
+        return;
+    }
+
+    let file_appender = tracing_appender::rolling::daily(&log_dir, "dona-bridge.log");
+    let (file_writer, guard) = tracing_appender::non_blocking(file_appender);
+    // Keep the worker guard alive for the whole process lifetime.
+    Box::leak(Box::new(guard));
+
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(fmt::layer())
+        .with(fmt::layer().with_writer(file_writer).with_ansi(false))
+        .init();
 }

@@ -37,6 +37,9 @@ keyring = { version = "3", features = ["windows-native"] }
 # Security / App Lock
 argon2 = "0.5"
 
+# Encrypted backups
+aes-gcm = "0.10"
+
 # MCP
 rmcp = { version = "0.1", features = ["server", "transport-sse", "transport-io", "macros"] }
 

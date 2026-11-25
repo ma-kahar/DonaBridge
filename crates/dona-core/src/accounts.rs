@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::error::Result;
-use crate::models::Account;
+use crate::models::{Account, AccountGroup};
 
 /// List all accounts ordered by `sort_order`, then `created_at`.
 pub fn list_accounts(conn: &Connection) -> Result<Vec<Account>> {
@@ -62,7 +62,7 @@ pub fn upsert_account(conn: &Connection, account: &Account) -> Result<Account> {
             category = excluded.category,
             color = excluded.color,
             icon_text = excluded.icon_text,
-            avatar_path = COALESCE(excluded.avatar_path, accounts.avatar_path),
+            avatar_path = excluded.avatar_path,
             group_id = excluded.group_id,
             sort_order = excluded.sort_order,
             muted = excluded.muted,
@@ -153,15 +153,75 @@ pub fn take_pending_profile_deletions(conn: &Connection) -> Result<Vec<String>> 
     Ok(list)
 }
 
+/// List account groups ordered by `sort_order`, then name.
+pub fn list_groups(conn: &Connection) -> Result<Vec<AccountGroup>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, color, sort_order
+         FROM account_groups
+         ORDER BY sort_order ASC, name ASC",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(AccountGroup {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            color: row.get(2)?,
+            sort_order: row.get(3)?,
+        })
+    })?;
+
+    let mut groups = Vec::new();
+    for row in rows {
+        groups.push(row?);
+    }
+    Ok(groups)
+}
+
+/// Insert or update an account group.
+pub fn upsert_group(conn: &Connection, group: &AccountGroup) -> Result<AccountGroup> {
+    conn.execute(
+        "INSERT INTO account_groups (id, name, color, sort_order)
+         VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
+            color = excluded.color,
+            sort_order = excluded.sort_order",
+        params![group.id, group.name, group.color, group.sort_order],
+    )?;
+
+    Ok(AccountGroup {
+        id: group.id.clone(),
+        name: group.name.clone(),
+        color: group.color.clone(),
+        sort_order: group.sort_order,
+    })
+}
+
+/// Delete an account group. Accounts in the group are kept and become ungrouped
+/// (`ON DELETE SET NULL`).
+pub fn delete_group(conn: &Connection, id: &str) -> Result<()> {
+    conn.execute("DELETE FROM account_groups WHERE id = ?1", params![id])?;
+    Ok(())
+}
+
+/// Persist a new account order. `ids` is the full, ordered list of account ids;
+/// the position in the slice becomes the account's `sort_order`.
+pub fn reorder_accounts(conn: &Connection, ids: &[String]) -> Result<()> {
+    let tx = conn.unchecked_transaction()?;
+    for (index, id) in ids.iter().enumerate() {
+        tx.execute(
+            "UPDATE accounts SET sort_order = ?1 WHERE id = ?2",
+            params![index as i32, id],
+        )?;
+    }
+    tx.commit()?;
+    Ok(())
+}
+
 fn row_to_account(row: &rusqlite::Row<'_>) -> rusqlite::Result<Account> {
     let dnd_str: Option<String> = row.get(14)?;
     let dnd_schedule = dnd_str.and_then(|s| serde_json::from_str(&s).ok());
     let created_str: Option<String> = row.get(15)?;
-    let created_at = created_str.and_then(|s| {
-        DateTime::parse_from_rfc3339(&s)
-            .map(|dt| dt.with_timezone(&Utc))
-            .ok()
-    });
+    let created_at = created_str.as_deref().and_then(parse_db_datetime);
 
     Ok(Account {
         id: row.get(0)?,
@@ -183,6 +243,27 @@ fn row_to_account(row: &rusqlite::Row<'_>) -> rusqlite::Result<Account> {
     })
 }
 
+/// Parse the timestamps SQLite produces.
+///
+/// `datetime('now')` (the column default) yields `2025-01-31 09:15:00`, which is
+/// **not** RFC 3339, so a strict RFC 3339 parser silently turned every
+/// `created_at` into `None`. Accept both formats.
+fn parse_db_datetime(value: &str) -> Option<DateTime<Utc>> {
+    let value = value.trim();
+    if value.is_empty() {
+        return None;
+    }
+    if let Ok(dt) = DateTime::parse_from_rfc3339(value) {
+        return Some(dt.with_timezone(&Utc));
+    }
+    for fmt in ["%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"] {
+        if let Ok(naive) = chrono::NaiveDateTime::parse_from_str(value, fmt) {
+            return Some(DateTime::<Utc>::from_naive_utc_and_offset(naive, Utc));
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,7 +274,10 @@ mod tests {
         let mut conn = Connection::open_in_memory().expect("open memory db");
         conn.execute_batch("PRAGMA foreign_keys=ON;")
             .expect("pragmas");
-        let migrations = Migrations::new(vec![M::up(include_str!("migrations/001_initial.sql"))]);
+        let migrations = Migrations::new(vec![
+            M::up(include_str!("migrations/001_initial.sql")),
+            M::up(include_str!("migrations/002_account_group_color.sql")),
+        ]);
         migrations.to_latest(&mut conn).expect("migrate");
         conn
     }
@@ -257,5 +341,82 @@ mod tests {
 
         let empty = take_pending_profile_deletions(&conn).expect("take again");
         assert!(empty.is_empty());
+    }
+
+    #[test]
+    fn parses_sqlite_and_rfc3339_timestamps() {
+        // SQLite `datetime('now')` format (the column default)
+        let sqlite = parse_db_datetime("2025-01-31 09:15:00").expect("sqlite format");
+        assert_eq!(sqlite.to_rfc3339(), "2025-01-31T09:15:00+00:00");
+
+        // RFC 3339 format
+        let rfc = parse_db_datetime("2025-01-31T09:15:00Z").expect("rfc3339 format");
+        assert_eq!(rfc, sqlite);
+
+        assert!(parse_db_datetime("").is_none());
+        assert!(parse_db_datetime("not a date").is_none());
+    }
+
+    #[test]
+    fn avatar_can_be_cleared() {
+        let conn = setup_mem_db();
+        let mut acc = Account {
+            id: "acc_avatar".into(),
+            name: "Avatar".into(),
+            avatar_path: Some("data:image/jpeg;base64,AAAA".into()),
+            zoom: 1.0,
+            ..Default::default()
+        };
+        upsert_account(&conn, &acc).expect("insert with avatar");
+
+        acc.avatar_path = None;
+        let saved = upsert_account(&conn, &acc).expect("clear avatar");
+        assert!(saved.avatar_path.is_none());
+    }
+
+    #[test]
+    fn groups_and_reordering() {
+        let conn = setup_mem_db();
+
+        let group = AccountGroup {
+            id: "grp_shop".into(),
+            name: "Shop".into(),
+            color: "#3B82F6".into(),
+            sort_order: 0,
+        };
+        upsert_group(&conn, &group).expect("insert group");
+        assert_eq!(list_groups(&conn).expect("list groups").len(), 1);
+
+        for (id, order) in [("a", 0), ("b", 1), ("c", 2)] {
+            let account = Account {
+                id: id.into(),
+                name: id.to_uppercase(),
+                profile_name: id.into(),
+                group_id: Some("grp_shop".into()),
+                sort_order: order,
+                zoom: 1.0,
+                ..Default::default()
+            };
+            upsert_account(&conn, &account).expect("insert account");
+        }
+
+        reorder_accounts(&conn, &["c".into(), "a".into(), "b".into()]).expect("reorder");
+        let ordered: Vec<String> = list_accounts(&conn)
+            .expect("list")
+            .into_iter()
+            .map(|a| a.id)
+            .collect();
+        assert_eq!(ordered, vec!["c", "a", "b"]);
+        assert_eq!(
+            list_accounts(&conn).expect("list")[0].group_id.as_deref(),
+            Some("grp_shop")
+        );
+
+        delete_group(&conn, "grp_shop").expect("delete group");
+        assert!(list_groups(&conn).expect("groups").is_empty());
+        // Accounts survive and become ungrouped.
+        let accounts = list_accounts(&conn).expect("accounts");
+        assert_eq!(accounts.len(), 3);
+        assert!(accounts.iter().all(|a| a.group_id.is_none()));
     }
 }

@@ -10,6 +10,10 @@ fn main() {
             "account_verify_pin",
             "account_clear_pin",
             "set_overlay_open",
+            "list_account_groups",
+            "upsert_account_group",
+            "delete_account_group",
+            "reorder_accounts",
             "crm_list_contacts",
             "crm_upsert_contact",
             "crm_delete_contact",
@@ -57,6 +61,10 @@ fn main() {
             "wa_chat_context",
             "wa_shortcut",
             "wa_auto_read",
+            "wa_session_state",
+            "backup_encrypted",
+            "restore_encrypted",
+            "app_health",
         ]),
     ))
     .expect("failed to run tauri-build");

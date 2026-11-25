@@ -39,7 +39,9 @@ build/
 # ============================================
 node_modules/
 .pnpm-store/
-pnpm-lock.yaml
+# pnpm-lock.yaml and Cargo.lock MUST be committed:
+# CI runs `pnpm install --frozen-lockfile`, and reproducible Rust builds
+# depend on the pinned dependency graph.
 
 # ============================================
 # IDE & Editors
@@ -55,7 +57,6 @@ Thumbs.db
 # ============================================
 # Rust
 # ============================================
-Cargo.lock
 **/*.rs.bk
 *.pdb
 

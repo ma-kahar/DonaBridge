@@ -32,6 +32,12 @@ struct ChatContextPayload {
     messages: Vec<String>,
 }
 
+#[derive(Clone, Serialize)]
+struct SessionPayload {
+    account_id: String,
+    state: String,
+}
+
 /// WhatsApp page reports a new notification (unread message).
 /// Sends a Windows native toast notification via `tauri-plugin-notification`.
 /// Blueprint §8 #4: when locked, show "New message" only (no sender or text).
@@ -45,14 +51,24 @@ pub async fn wa_notify(
     use tauri_plugin_notification::NotificationExt;
 
     let account_id = account_id_from_label(webview.label())?;
-    let account = {
-        let conn = dona_core::db::get().lock();
-        dona_core::accounts::get_account(&conn, &account_id)
-            .ok()
-            .flatten()
-    };
 
-    if account.as_ref().is_some_and(|a| a.muted) {
+    // Do the account lookup and DND check in one blocking task with a single
+    // database lock. (Locking twice on the same thread deadlocks.)
+    let id_for_db = account_id.clone();
+    let (account, dnd_active) = tokio::task::spawn_blocking(move || {
+        let conn = dona_core::db::get().lock();
+        let account = dona_core::accounts::get_account(&conn, &id_for_db)
+            .ok()
+            .flatten();
+        let dnd = crate::commands::wa_extra::is_dnd_active_with(&conn, &id_for_db);
+        (account, dnd)
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Muted accounts and accounts inside their quiet hours stay silent, but
+    // unread counts keep updating in the UI.
+    if dnd_active || account.as_ref().is_some_and(|a| a.muted) {
         return Ok(());
     }
 
@@ -149,6 +165,24 @@ pub async fn wa_shortcut(app: AppHandle, webview: Webview, key: String) -> Resul
     let account_id = account_id_from_label(webview.label())?;
     tracing::debug!("wa_shortcut from {account_id}: {key}");
     let _ = app.emit_to("main", "wa:shortcut", ShortcutPayload { account_id, key });
+    Ok(())
+}
+
+/// WhatsApp page reports whether this session is connected or waiting for a QR
+/// scan. Lets the UI show a "reconnect" badge instead of silently looking empty.
+#[command]
+pub async fn wa_session_state(
+    app: AppHandle,
+    webview: Webview,
+    state: String,
+) -> Result<(), String> {
+    let account_id = account_id_from_label(webview.label())?;
+    let allowed = ["connected", "logged_out", "loading"];
+    if !allowed.contains(&state.as_str()) {
+        return Ok(());
+    }
+    tracing::debug!("wa_session_state from {account_id}: {state}");
+    let _ = app.emit_to("main", "wa:session", SessionPayload { account_id, state });
     Ok(())
 }
 

@@ -10,6 +10,14 @@ export interface AccountInfo {
   sort_order: number;
   avatar_data_url?: string | null;
   has_lock?: boolean;
+  group_id?: string | null;
+}
+
+export interface AccountGroupDto {
+  id: string;
+  name: string;
+  color: string;
+  sort_order: number;
 }
 
 export interface TagDto {
@@ -93,6 +101,26 @@ export async function deleteAccount(id: string): Promise<void> {
 export async function switchAccount(id: string): Promise<void> {
   if (!isTauri()) return;
   return invoke<void>("switch_account", { id });
+}
+
+export async function listAccountGroups(): Promise<AccountGroupDto[]> {
+  if (!isTauri()) return [];
+  return invoke<AccountGroupDto[]>("list_account_groups");
+}
+
+export async function upsertAccountGroup(group: AccountGroupDto): Promise<AccountGroupDto> {
+  if (!isTauri()) return group;
+  return invoke<AccountGroupDto>("upsert_account_group", { group });
+}
+
+export async function deleteAccountGroup(id: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("delete_account_group", { id });
+}
+
+export async function reorderAccounts(ids: string[]): Promise<void> {
+  if (!isTauri()) return;
+  return invoke<void>("reorder_accounts", { ids });
 }
 
 export async function setOverlayOpen(open: boolean, activeAccountId: string | null): Promise<void> {
@@ -384,16 +412,49 @@ export async function clearDndSchedule(accountId: string): Promise<void> {
   return invoke<void>("clear_dnd_schedule", { accountId });
 }
 
-// ── Backup / Restore IPC ──────────────────────────────────────────────────────
+// ── Backup / Restore / Health IPC ─────────────────────────────────────────────
 
-export async function backupEncrypted(password: string): Promise<string> {
-  if (!isTauri()) return "";
-  return invoke<string>("backup_encrypted", { password });
+export interface BackupResult {
+  path: string;
+  bytes: number;
+  accounts: number;
 }
 
-export async function restoreEncrypted(path: string, password: string): Promise<void> {
-  if (!isTauri()) return;
-  return invoke<void>("restore_encrypted", { path, password });
+export interface RestoreResult {
+  accounts: number;
+}
+
+export interface HealthReport {
+  data_dir: string;
+  db_path: string;
+  db_bytes: number;
+  wal_bytes: number;
+  log_dir: string;
+  backups_bytes: number;
+  account_count: number;
+  group_count: number;
+  webview_profiles: number;
+  webview_bytes: number;
+  version: string;
+  os: string;
+}
+
+export async function backupEncrypted(
+  password: string,
+  destination: string
+): Promise<BackupResult> {
+  if (!isTauri()) throw new Error("Backups are only available in the desktop app");
+  return invoke<BackupResult>("backup_encrypted", { password, destination });
+}
+
+export async function restoreEncrypted(path: string, password: string): Promise<RestoreResult> {
+  if (!isTauri()) throw new Error("Restores are only available in the desktop app");
+  return invoke<RestoreResult>("restore_encrypted", { path, password });
+}
+
+export async function appHealth(): Promise<HealthReport | null> {
+  if (!isTauri()) return null;
+  return invoke<HealthReport>("app_health");
 }
 
 // ── MCP Server IPC ───────────────────────────────────────────────────────────

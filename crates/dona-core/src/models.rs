@@ -40,6 +40,16 @@ fn default_zoom() -> f64 {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AccountGroup {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub color: String,
+    #[serde(default)]
+    pub sort_order: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Contact {
     pub id: String,
     pub account_id: String,

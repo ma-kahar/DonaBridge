@@ -33,7 +33,7 @@
 |---------|--------|-------------|
 | **Contacts** | ✅ | Full CRUD with E.164 phone normalization |
 | **Pipeline stages** | ✅ | Kanban: New → Follow-up → Negotiating → Won → Do Not Contact |
-| **Notes** | ✅ | Rich text notes per contact (Quill editor) |
+| **Notes** | ✅ | Plain-text notes per contact |
 | **Tags** | ✅ | Color-coded tags (many-to-many) |
 | **Follow-up reminders** | ✅ | Date + time reminders with 30s background timer |
 | **Windows toast alerts** | ✅ | Pop-up notifications when reminders are due |
@@ -102,7 +102,7 @@
 | **Strict CSP** | ✅ | Content Security Policy on React shell |
 | **Capability isolation** | ✅ | Separate ACLs for shell vs wa-remote |
 | **Zero telemetry** | ✅ | No data leaves device |
-| **Encrypted backup** | ⏳ | Planned v1.1 (age encryption) |
+| **Encrypted backup** | ✅ | AES-256-GCM + Argon2id; portable between PCs |
 | **Local database** | ✅ | SQLite WAL mode |
 | **Privacy blur** | ✅ | Blur WebView when locked |
 
@@ -166,7 +166,6 @@
 ## ⏳ Planned Features (v1.1+)
 
 ### High Priority (v1.1)
-- [ ] Real encrypted backup/restore (age crate)
 - [ ] Remote selector pack (signed JSON updates)
 - [ ] AI tone presets (Formal, Casual, Friendly)
 - [ ] Contact timeline view

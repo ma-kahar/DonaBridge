@@ -1,7 +1,15 @@
 import { ImagePlus, Lock, Trash2, X } from "lucide-react";
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { accountClearPin, accountSetPin, deleteAccount, switchAccount, upsertAccount } from "../../lib/ipc";
+import {
+  type AccountGroupDto,
+  accountClearPin,
+  accountSetPin,
+  deleteAccount,
+  listAccountGroups,
+  switchAccount,
+  upsertAccount,
+} from "../../lib/ipc";
 import { type Account, useAppStore } from "../../store";
 
 const COLOR_PRESETS = ["#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#06B6D4", "#6366F1"];
@@ -22,6 +30,8 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
   const [iconText, setIconText] = useState("");
   const [muted, setMuted] = useState(false);
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | null>(null);
+  const [groups, setGroups] = useState<AccountGroupDto[]>([]);
+  const [groupId, setGroupId] = useState("");
   const [pinInput, setPinInput] = useState("");
   const [hasLock, setHasLock] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -29,6 +39,9 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
 
   useEffect(() => {
     if (!open) return;
+    void listAccountGroups()
+      .then(setGroups)
+      .catch(() => setGroups([]));
     if (editingAccount) {
       setName(editingAccount.name);
       setCategory(editingAccount.category === "personal" ? "personal" : "business");
@@ -37,6 +50,7 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
       setMuted(editingAccount.muted);
       setAvatarDataUrl(editingAccount.avatarDataUrl ?? null);
       setHasLock(Boolean(editingAccount.hasLock));
+      setGroupId(editingAccount.groupId ?? "");
       setPinInput("");
     } else {
       setName("");
@@ -46,6 +60,7 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
       setMuted(false);
       setAvatarDataUrl(null);
       setHasLock(false);
+      setGroupId("");
       setPinInput("");
     }
   }, [open, editingAccount]);
@@ -87,22 +102,17 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
     try {
       const id = editingAccount ? editingAccount.id : "";
       const initials = (iconText.trim() || trimmed.slice(0, 2)).toUpperCase().slice(0, 2);
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Request timed out. Please restart Dona Bridge.")), 8000)
-      );
-      const saved = await Promise.race([
-        upsertAccount({
-          id,
-          name: trimmed,
-          color,
-          icon_text: initials,
-          category,
-          muted,
-          sort_order: editingAccount ? editingAccount.sortOrder : accounts.length,
-          avatar_data_url: avatarDataUrl ?? "",
-        }),
-        timeoutPromise,
-      ]);
+      const saved = await upsertAccount({
+        id,
+        name: trimmed,
+        color,
+        icon_text: initials,
+        category,
+        muted,
+        sort_order: editingAccount ? editingAccount.sortOrder : accounts.length,
+        avatar_data_url: avatarDataUrl ?? "",
+        group_id: groupId || null,
+      });
 
       let updatedLock = hasLock;
       if (pinInput.trim().length >= 4) {
@@ -121,6 +131,7 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
         unreadCount: editingAccount?.unreadCount ?? 0,
         avatarDataUrl: saved.avatar_data_url ?? avatarDataUrl,
         hasLock: updatedLock,
+        groupId: saved.group_id ?? null,
       };
 
       if (editingAccount) {
@@ -255,6 +266,27 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
               />
             </div>
           </div>
+
+          {groups.length > 0 && (
+            <div>
+              <label htmlFor="acc-group" className="block text-sm text-gray-300 mb-1">
+                {t("accounts.groupLabel")}
+              </label>
+              <select
+                id="acc-group"
+                value={groupId}
+                onChange={(e) => setGroupId(e.target.value)}
+                className="w-full rounded-lg bg-dona-dark border border-dona-border px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">{t("accounts.noGroup")}</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <span className="block text-sm text-gray-300 mb-2">{t("accounts.colorLabel")}</span>

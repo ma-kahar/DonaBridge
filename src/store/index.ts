@@ -11,14 +11,32 @@ export interface Account {
   unreadCount: number;
   avatarDataUrl?: string | null;
   hasLock?: boolean;
+  groupId?: string | null;
+}
+
+export type AccountsStatus = "idle" | "loading" | "ready" | "error";
+export type SessionState = "connected" | "logged_out" | "loading";
+
+export interface AccountGroup {
+  id: string;
+  name: string;
+  color: string;
+  sortOrder: number;
 }
 
 interface AppState {
   accounts: Account[];
+  groups: AccountGroup[];
+  accountsStatus: AccountsStatus;
+  accountsError: string | null;
   activeAccountId: string | null;
+  sessionStates: Record<string, SessionState>;
   theme: "dark" | "light";
   setAccounts: (accounts: Account[]) => void;
+  setGroups: (groups: AccountGroup[]) => void;
+  setAccountsStatus: (status: AccountsStatus, error?: string | null) => void;
   setActiveAccount: (id: string | null) => void;
+  setSessionState: (id: string, state: SessionState) => void;
   updateUnread: (id: string, count: number) => void;
   toggleTheme: () => void;
 }
@@ -30,10 +48,19 @@ const savedTheme: "dark" | "light" =
 
 export const useAppStore = create<AppState>((set) => ({
   accounts: [],
+  groups: [],
+  accountsStatus: "idle",
+  accountsError: null,
   activeAccountId: null,
+  sessionStates: {},
   theme: savedTheme,
   setAccounts: (accounts) => set({ accounts }),
+  setGroups: (groups) => set({ groups }),
+  setAccountsStatus: (accountsStatus, accountsError = null) =>
+    set({ accountsStatus, accountsError }),
   setActiveAccount: (id) => set({ activeAccountId: id }),
+  setSessionState: (id, state) =>
+    set((s) => ({ sessionStates: { ...s.sessionStates, [id]: state } })),
   updateUnread: (id, count) =>
     set((state) => ({
       accounts: state.accounts.map((a) => (a.id === id ? { ...a, unreadCount: count } : a)),

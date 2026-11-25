@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-backup-encrypted"
+description = "Enables the backup_encrypted command without any pre-configured scope."
+commands.allow = ["backup_encrypted"]
+
+[[permission]]
+identifier = "deny-backup-encrypted"
+description = "Denies the backup_encrypted command without any pre-configured scope."
+commands.deny = ["backup_encrypted"]

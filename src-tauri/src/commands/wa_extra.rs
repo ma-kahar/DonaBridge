@@ -1,4 +1,4 @@
-// commands/wa_extra.rs — link preview fetch + DND schedule + backup stubs
+// commands/wa_extra.rs — link preview fetch + DND schedule
 
 use serde::{Deserialize, Serialize};
 
@@ -108,10 +108,15 @@ pub async fn clear_dnd_schedule(account_id: String) -> Result<(), String> {
 }
 
 /// Check whether current time is within account's DND window.
-#[allow(dead_code)]
 pub fn is_dnd_active(account_id: &str) -> bool {
     let conn = dona_core::db::get().lock();
-    let Ok(Some(val)) = dona_core::db::get_setting(&conn, &format!("dnd_{account_id}")) else {
+    is_dnd_active_with(&conn, account_id)
+}
+
+/// Same as [`is_dnd_active`] but reuses an existing connection (avoids
+/// re-locking the global database mutex on the same thread).
+pub fn is_dnd_active_with(conn: &rusqlite::Connection, account_id: &str) -> bool {
+    let Ok(Some(val)) = dona_core::db::get_setting(conn, &format!("dnd_{account_id}")) else {
         return false;
     };
     if val.is_empty() {
@@ -149,29 +154,4 @@ pub fn is_dnd_active(account_id: &str) -> bool {
 
 use chrono::Timelike;
 
-/// Placeholder: backup app data encrypted with a password.
-#[tauri::command]
-pub async fn backup_encrypted(password: String) -> Result<String, String> {
-    if password.trim().is_empty() {
-        return Err("Password must not be empty".into());
-    }
-    // Real implementation: zip AppData dir, encrypt with AES-256-GCM+PBKDF2, save to Downloads
-    // For now return a placeholder path
-    Ok(format!(
-        "C:\\Users\\Public\\Downloads\\dona-backup-{}.age",
-        chrono::Local::now().format("%Y%m%d%H%M%S")
-    ))
-}
-
-/// Placeholder: restore from an encrypted backup file.
-#[tauri::command]
-pub async fn restore_encrypted(path: String, password: String) -> Result<(), String> {
-    if password.trim().is_empty() {
-        return Err("Password must not be empty".into());
-    }
-    if path.trim().is_empty() {
-        return Err("Backup path must not be empty".into());
-    }
-    // Real implementation: decrypt, unzip, replace AppData
-    Ok(())
-}
+// Backups live in `commands::data`.

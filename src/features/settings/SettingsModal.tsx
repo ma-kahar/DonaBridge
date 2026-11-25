@@ -1,7 +1,10 @@
 import {
   CheckCircle2,
   Download,
+  FileText,
+  FolderOpen,
   Globe,
+  HardDrive,
   KeyRound,
   Moon,
   Pencil,
@@ -14,18 +17,27 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { disable as disableAutostart, enable as enableAutostart, isEnabled as isAutostartEnabled } from "@tauri-apps/plugin-autostart";
+import { check as checkForUpdates } from "@tauri-apps/plugin-updater";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  type AccountGroupDto,
   type AiProfile,
+  type HealthReport,
   type McpStatus,
   aiDeleteProfile,
   aiDetectModels,
   aiListProfiles,
   aiSetActiveProfile,
   aiUpsertProfile,
+  appHealth,
   backupEncrypted,
   clearDndSchedule,
+  deleteAccountGroup,
+  listAccountGroups,
   mcpRotateToken,
   mcpStart,
   mcpStatus,
@@ -35,6 +47,7 @@ import {
   securityLockStatus,
   securitySetPin,
   setDndSchedule,
+  upsertAccountGroup,
 } from "../../lib/ipc";
 import { type Account, useAppStore } from "../../store";
 
@@ -44,7 +57,19 @@ interface SettingsModalProps {
   onEditAccount: (account: Account) => void;
 }
 
-type SettingsTab = "general" | "accounts" | "ai" | "security" | "mcp";
+type SettingsTab = "general" | "accounts" | "ai" | "security" | "data" | "mcp";
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+}
 
 const PROVIDER_DEFAULTS: Record<string, { model: string; base_url: string }> = {
   ollama: { model: "llama3.2", base_url: "http://localhost:11434" },
@@ -69,6 +94,19 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
   const [backupPass, setBackupPass] = useState("");
   const [restorePath, setRestorePath] = useState("");
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [health, setHealth] = useState<HealthReport | null>(null);
+
+  const [groups, setGroups] = useState<AccountGroupDto[]>([]);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupColor, setNewGroupColor] = useState("#25D366");
+
+  const [autostartEnabled, setAutostartEnabled] = useState(false);
+  const [autostartBusy, setAutostartBusy] = useState(false);
+  const [autostartError, setAutostartError] = useState<string | null>(null);
+
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+  const [updateBusy, setUpdateBusy] = useState(false);
 
   // Multi-profile AI state
   const [profiles, setProfiles] = useState<AiProfile[]>([]);
@@ -87,7 +125,22 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
     void securityLockStatus().then((s) => setHasPin(s.has_pin));
     void mcpStatus().then(setMcp);
     void aiListProfiles().then(setProfiles);
+    void listAccountGroups()
+      .then(setGroups)
+      .catch(() => setGroups([]));
+    void isAutostartEnabled()
+      .then(setAutostartEnabled)
+      .catch((err) => setAutostartError(String(err)));
   }, [open]);
+
+  // The health report walks the WebView2 profile folders, so only load it when
+  // the Data tab is actually open.
+  useEffect(() => {
+    if (!open || tab !== "data") return;
+    void appHealth()
+      .then(setHealth)
+      .catch((err) => setBackupStatus(String(err)));
+  }, [open, tab]);
 
   if (!open) return null;
 
@@ -167,9 +220,148 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
     setHasPin(true);
   }
 
+  function applyGroups(list: AccountGroupDto[]) {
+    setGroups(list);
+    useAppStore.getState().setGroups(
+      list.map((g) => ({ id: g.id, name: g.name, color: g.color, sortOrder: g.sort_order }))
+    );
+  }
+
+  async function handleAddGroup(e: FormEvent) {
+    e.preventDefault();
+    const name = newGroupName.trim();
+    if (!name) return;
+    try {
+      const saved = await upsertAccountGroup({
+        id: "",
+        name,
+        color: newGroupColor,
+        sort_order: groups.length,
+      });
+      applyGroups([...groups, saved]);
+      setNewGroupName("");
+    } catch (err) {
+      setBackupStatus(String(err));
+    }
+  }
+
+  async function handleDeleteGroup(id: string) {
+    try {
+      await deleteAccountGroup(id);
+      applyGroups(groups.filter((g) => g.id !== id));
+      useAppStore.setState((state) => ({
+        accounts: state.accounts.map((account) =>
+          account.groupId === id ? { ...account, groupId: null } : account
+        ),
+      }));
+    } catch (err) {
+      setBackupStatus(String(err));
+    }
+  }
+
+  async function handleToggleAutostart(next: boolean) {
+    setAutostartBusy(true);
+    setAutostartError(null);
+    try {
+      if (next) {
+        await enableAutostart();
+      } else {
+        await disableAutostart();
+      }
+      setAutostartEnabled(next);
+    } catch (err) {
+      setAutostartError(String(err));
+    } finally {
+      setAutostartBusy(false);
+    }
+  }
+
+  async function handleCheckUpdates() {
+    setUpdateBusy(true);
+    setUpdateStatus("Checking for updates…");
+    try {
+      const update = await checkForUpdates();
+      if (!update) {
+        setUpdateStatus("You are running the latest version.");
+        return;
+      }
+      setUpdateStatus(`Version ${update.version} is available — downloading…`);
+      await update.downloadAndInstall();
+      setUpdateStatus("Update installed. Restart Dona Bridge to finish.");
+    } catch (err) {
+      const message = String(err);
+      if (/not configured|no updater|endpoint|pubkey/i.test(message)) {
+        setUpdateStatus("Update server is not configured in this build.");
+      } else {
+        setUpdateStatus(message);
+      }
+    } finally {
+      setUpdateBusy(false);
+    }
+  }
+
+  async function handleBackup() {
+    if (!backupPass.trim()) return;
+    setBackupBusy(true);
+    setBackupStatus(null);
+    try {
+      const destination = await saveDialog({
+        title: "Save Dona Bridge backup",
+        defaultPath: `dona-backup-${new Date().toISOString().slice(0, 10)}.donabk`,
+        filters: [{ name: "Dona Bridge backup", extensions: ["donabk"] }],
+      });
+      if (!destination) return;
+      const result = await backupEncrypted(backupPass, destination);
+      setBackupStatus(
+        `Backup saved: ${result.accounts} accounts, ${formatBytes(result.bytes)} → ${result.path}`
+      );
+    } catch (err) {
+      setBackupStatus(String(err));
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+
+  async function handleRestore() {
+    if (!backupPass.trim()) return;
+    setBackupBusy(true);
+    setBackupStatus(null);
+    try {
+      const picked = await openDialog({
+        title: "Choose a Dona Bridge backup",
+        multiple: false,
+        directory: false,
+        filters: [{ name: "Dona Bridge backup", extensions: ["donabk"] }],
+      });
+      const path = typeof picked === "string" ? picked : restorePath;
+      if (!path) return;
+      setRestorePath(path);
+
+      const confirmed = window.confirm(
+        "Restore replaces all current accounts, CRM data and settings with this backup, then restarts Dona Bridge. A copy of the current database is kept in the backups folder. Continue?"
+      );
+      if (!confirmed) return;
+
+      const result = await restoreEncrypted(path, backupPass);
+      setBackupStatus(
+        `Restore prepared (${result.accounts} accounts). Dona Bridge is restarting…`
+      );
+    } catch (err) {
+      setBackupStatus(String(err));
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+
+  function revealPath(path: string | undefined) {
+    if (!path) return;
+    void revealItemInDir(path).catch((err) => setBackupStatus(String(err)));
+  }
+
   const navItems: { id: SettingsTab; label: string; icon: typeof Globe }[] = [
     { id: "general", label: t("settings.tabGeneral"), icon: Globe },
     { id: "accounts", label: t("settings.tabAccounts"), icon: Users },
+    { id: "data", label: t("settings.tabData"), icon: HardDrive },
     { id: "ai", label: t("settings.aiProvider"), icon: KeyRound },
     { id: "security", label: t("settings.appLock"), icon: ShieldCheck },
     { id: "mcp", label: "MCP", icon: Server },
@@ -216,7 +408,7 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
 
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {tab === "general" && (
-              <div className="space-y-4 max-w-md">
+              <div className="space-y-5 max-w-md">
                 <div>
                   <label htmlFor="settings-lang" className="block text-xs text-gray-300 mb-1.5">
                     {t("settings.language")}
@@ -232,6 +424,47 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
                     <option value="bn">বাংলা</option>
                   </select>
                 </div>
+
+                <div className="border-t border-dona-border pt-4 space-y-2">
+                  <label className="flex items-center justify-between gap-3 cursor-pointer">
+                    <span>
+                      <span className="block text-sm text-white">
+                        {t("settings.startWithWindows")}
+                      </span>
+                      <span className="block text-[11px] text-gray-400">
+                        {t("settings.startWithWindowsHint")}
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={autostartEnabled}
+                      disabled={autostartBusy}
+                      onChange={(e) => void handleToggleAutostart(e.target.checked)}
+                      className="w-4 h-4 accent-blue-600"
+                    />
+                  </label>
+                  {autostartError && (
+                    <p className="text-[11px] text-red-400 break-words">{autostartError}</p>
+                  )}
+                </div>
+
+                <div className="border-t border-dona-border pt-4 space-y-2">
+                  <p className="text-sm text-white">{t("settings.updates")}</p>
+                  <p className="text-[11px] text-gray-400">{t("settings.updatesHint")}</p>
+                  <button
+                    type="button"
+                    disabled={updateBusy}
+                    onClick={() => void handleCheckUpdates()}
+                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-xs font-medium text-white inline-flex items-center gap-1.5"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${updateBusy ? "animate-spin" : ""}`} />
+                    {t("settings.checkUpdates")}
+                  </button>
+                  {updateStatus && (
+                    <p className="text-[11px] text-gray-300 break-words">{updateStatus}</p>
+                  )}
+                </div>
+
                 <p className="text-xs text-gray-400 pt-4 border-t border-dona-border">
                   {t("settings.aboutCredit")}
                 </p>
@@ -241,6 +474,60 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
             {tab === "accounts" && (
               <div className="space-y-3">
                 <p className="text-xs text-gray-400">{t("settings.accountsHint")}</p>
+
+                {/* Account groups */}
+                <div className="rounded-xl bg-dona-dark border border-dona-border p-3 space-y-2">
+                  <p className="text-xs font-semibold text-white">{t("accounts.groups")}</p>
+                  <p className="text-[11px] text-gray-400">{t("accounts.groupsHint")}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {groups.map((group) => (
+                      <span
+                        key={group.id}
+                        style={{ borderColor: group.color }}
+                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] text-gray-200"
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: group.color }}
+                        />
+                        {group.name}
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteGroup(group.id)}
+                          className="text-red-400 hover:text-red-300"
+                          title={t("common.delete")}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    {groups.length === 0 && (
+                      <span className="text-[11px] text-gray-500">{t("accounts.noGroups")}</span>
+                    )}
+                  </div>
+                  <form onSubmit={handleAddGroup} className="flex items-center gap-2">
+                    <input
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      placeholder={t("accounts.groupNamePlaceholder")}
+                      className="flex-1 rounded-lg bg-dona-panel border border-dona-border px-2.5 py-1.5 text-xs text-white"
+                    />
+                    <input
+                      type="color"
+                      value={newGroupColor}
+                      onChange={(e) => setNewGroupColor(e.target.value)}
+                      aria-label={t("accounts.groupColor")}
+                      className="h-8 w-8 rounded border border-dona-border bg-transparent p-0.5"
+                    />
+                    <button
+                      type="submit"
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-medium text-white"
+                    >
+                      {t("accounts.addGroup")}
+                    </button>
+                  </form>
+                </div>
+
                 {dndStatus && <p className="text-[11px] text-emerald-400">{dndStatus}</p>}
                 {accounts.length === 0 ? (
                   <p className="text-sm text-gray-500 py-8 text-center">
@@ -275,6 +562,9 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
                               <p className="text-sm font-medium text-white truncate">{acc.name}</p>
                               <p className="text-[11px] text-gray-400">
                                 {acc.category} {acc.hasLock ? "· 🔒" : ""} {acc.muted ? "· 🔇" : ""}
+                                {acc.groupId
+                                  ? ` · ${groups.find((g) => g.id === acc.groupId)?.name ?? ""}`
+                                  : ""}
                               </p>
                             </div>
                           </div>
@@ -561,114 +851,196 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
                   </form>
                 )}
 
-                {/* Backup & Restore */}
-                <div className="border-t border-dona-border pt-4 space-y-3">
-                  <p className="text-xs font-semibold text-white">Encrypted Backup & Restore</p>
-                  <p className="text-[11px] text-gray-400">
-                    Export or restore all app data using a password-protected backup file (.age).
-                  </p>
+              </div>
+            )}
+
+            {tab === "data" && (
+              <div className="space-y-5 max-w-xl">
+                {/* Storage & health */}
+                <div className="rounded-xl bg-dona-dark border border-dona-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-white">
+                      {t("settings.storageHealth")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void appHealth().then(setHealth)}
+                      className="p-1.5 rounded hover:bg-white/10 text-gray-400 hover:text-white"
+                      title={t("common.refresh")}
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {health ? (
+                    <>
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
+                        <div className="col-span-2">
+                          <dt className="text-gray-500">{t("settings.dataFolder")}</dt>
+                          <dd className="text-gray-200 break-all">{health.data_dir}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500">{t("settings.database")}</dt>
+                          <dd className="text-gray-200">
+                            {formatBytes(health.db_bytes + health.wal_bytes)}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500">{t("settings.backupsSize")}</dt>
+                          <dd className="text-gray-200">{formatBytes(health.backups_bytes)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500">{t("settings.accounts")}</dt>
+                          <dd className="text-gray-200">
+                            {health.account_count} · {health.group_count} {t("settings.groups")}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500">{t("settings.webviewProfiles")}</dt>
+                          <dd className="text-gray-200">
+                            {health.webview_profiles} · {formatBytes(health.webview_bytes)}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500">{t("settings.version")}</dt>
+                          <dd className="text-gray-200">
+                            {health.version} ({health.os})
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500">{t("settings.logs")}</dt>
+                          <dd className="text-gray-200">{health.log_dir}</dd>
+                        </div>
+                      </dl>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => revealPath(health.db_path)}
+                          className="px-2.5 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <HardDrive className="w-3.5 h-3.5" />
+                          {t("settings.showDatabase")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => revealPath(health.log_dir)}
+                          className="px-2.5 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          {t("settings.showLogs")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => revealPath(health.data_dir)}
+                          className="px-2.5 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5" />
+                          {t("settings.showDataFolder")}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-gray-500">{t("common.loading")}</p>
+                  )}
+                </div>
+
+                {/* Encrypted backup & restore */}
+                <div className="rounded-xl bg-dona-dark border border-dona-border p-4 space-y-3">
+                  <p className="text-xs font-semibold text-white">{t("settings.backupTitle")}</p>
+                  <p className="text-[11px] text-gray-400">{t("settings.backupHint")}</p>
                   <input
                     type="password"
                     value={backupPass}
                     onChange={(e) => setBackupPass(e.target.value)}
-                    placeholder="Backup password"
-                    className="w-full rounded-lg bg-dona-dark border border-dona-border px-3 py-2 text-xs text-white"
+                    placeholder={t("settings.backupPassword")}
+                    className="w-full rounded-lg bg-dona-panel border border-dona-border px-3 py-2 text-xs text-white"
                   />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={!backupPass.trim() || backupBusy}
+                      onClick={() => void handleBackup()}
+                      className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-xs font-medium text-white inline-flex items-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      {t("settings.createBackup")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!backupPass.trim() || backupBusy}
+                      onClick={() => void handleRestore()}
+                      className="px-3 py-2 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-xs text-gray-200 inline-flex items-center gap-1.5"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      {t("settings.restoreBackup")}
+                    </button>
+                  </div>
+                  {backupStatus && (
+                    <p className="text-[11px] text-emerald-400 break-all">{backupStatus}</p>
+                  )}
+                  <p className="text-[11px] text-gray-500">{t("settings.backupPortable")}</p>
+                </div>
+
+                {/* CRM & workspace JSON backup */}
+                <div className="rounded-xl bg-dona-dark border border-dona-border p-4 space-y-2">
+                  <p className="text-xs font-semibold text-white">{t("settings.crmJsonTitle")}</p>
+                  <p className="text-[11px] text-gray-400">{t("settings.crmJsonHint")}</p>
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      disabled={!backupPass.trim()}
                       onClick={() => {
-                        void backupEncrypted(backupPass)
-                          .then((path) => setBackupStatus(`Backup saved: ${path}`))
-                          .catch((err) => setBackupStatus(String(err)));
+                        const data: Record<string, string> = {};
+                        for (let i = 0; i < localStorage.length; i++) {
+                          const key = localStorage.key(i);
+                          if (key?.startsWith("dona_")) {
+                            data[key] = localStorage.getItem(key) ?? "";
+                          }
+                        }
+                        const blob = new Blob([JSON.stringify(data, null, 2)], {
+                          type: "application/json",
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const anchor = document.createElement("a");
+                        anchor.href = url;
+                        anchor.download = `donabridge-crm-backup-${new Date()
+                          .toISOString()
+                          .slice(0, 10)}.json`;
+                        anchor.click();
+                        URL.revokeObjectURL(url);
+                        setBackupStatus("CRM & workspace JSON exported.");
                       }}
-                      className="flex-1 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-xs font-medium text-white inline-flex items-center justify-center gap-1.5"
+                      className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-medium text-white inline-flex items-center justify-center gap-1.5"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      Backup
+                      {t("settings.exportJson")}
                     </button>
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <input
-                      type="text"
-                      value={restorePath}
-                      onChange={(e) => setRestorePath(e.target.value)}
-                      placeholder="Path to .age backup file"
-                      className="flex-1 rounded-lg bg-dona-dark border border-dona-border px-3 py-2 text-xs text-white"
-                    />
-                    <button
-                      type="button"
-                      disabled={!backupPass.trim() || !restorePath.trim()}
-                      onClick={() => {
-                        void restoreEncrypted(restorePath, backupPass)
-                          .then(() => setBackupStatus("Backup restored successfully."))
-                          .catch((err) => setBackupStatus(String(err)));
-                      }}
-                      className="py-2 px-3 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-xs text-gray-200 inline-flex items-center gap-1.5"
-                    >
+                    <label className="flex-1 py-1.5 px-3 rounded-lg border border-dona-border hover:bg-white/5 text-xs text-gray-200 inline-flex items-center justify-center gap-1.5 cursor-pointer">
                       <Upload className="w-3.5 h-3.5" />
-                      Restore
-                    </button>
-                  </div>
-                  {backupStatus && <p className="text-[11px] text-emerald-400 break-all">{backupStatus}</p>}
-
-                  {/* Quick JSON Backup & Restore for CRM Projects, Quick Replies, Pinned & Theme */}
-                  <div className="border-t border-dona-border pt-3 space-y-2">
-                    <p className="text-xs font-semibold text-white">CRM & Workspace JSON Backup</p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const data: Record<string, string> = {};
-                          for (let i = 0; i < localStorage.length; i++) {
-                            const k = localStorage.key(i);
-                            if (k && k.startsWith("dona_")) {
-                              data[k] = localStorage.getItem(k) ?? "";
-                            }
-                          }
-                          const blob = new Blob([JSON.stringify(data, null, 2)], {
-                            type: "application/json",
-                          });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = `donabridge-crm-backup-${new Date().toISOString().slice(0, 10)}.json`;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                          setBackupStatus("CRM JSON backup exported.");
-                        }}
-                        className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-medium text-white inline-flex items-center justify-center gap-1.5"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        Export JSON
-                      </button>
-                      <label className="flex-1 py-1.5 px-3 rounded-lg border border-dona-border hover:bg-white/5 text-xs text-gray-200 inline-flex items-center justify-center gap-1.5 cursor-pointer">
-                        <Upload className="w-3.5 h-3.5" />
-                        Import JSON
-                        <input
-                          type="file"
-                          accept=".json"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            void file.text().then((txt) => {
-                              try {
-                                const parsed = JSON.parse(txt) as Record<string, string>;
-                                Object.entries(parsed).forEach(([k, v]) => {
-                                  if (k.startsWith("dona_")) localStorage.setItem(k, v);
-                                });
-                                setBackupStatus("CRM JSON restored! Reopen CRM to see changes.");
-                              } catch {
-                                setBackupStatus("Invalid JSON backup file.");
+                      {t("settings.importJson")}
+                      <input
+                        type="file"
+                        accept=".json"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          void file.text().then((txt) => {
+                            try {
+                              const parsed = JSON.parse(txt) as Record<string, string>;
+                              for (const [key, value] of Object.entries(parsed)) {
+                                if (key.startsWith("dona_")) localStorage.setItem(key, value);
                               }
-                            });
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
-                    </div>
+                              setBackupStatus(
+                                "Workspace JSON restored. Reopen the CRM to see changes."
+                              );
+                            } catch {
+                              setBackupStatus("Invalid JSON backup file.");
+                            }
+                          });
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
                   </div>
                 </div>
               </div>

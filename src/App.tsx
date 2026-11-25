@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { Lock, Plus } from "lucide-react";
+import { AlertTriangle, Lock, Plus, RefreshCw } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AccountDock from "./features/accounts/AccountDock";
@@ -7,10 +7,12 @@ import AddAccountModal from "./features/accounts/AddAccountModal";
 import CrmDrawer from "./features/crm/CrmDrawer";
 import LockScreen from "./features/lock/LockScreen";
 import SettingsModal from "./features/settings/SettingsModal";
+import CommandPalette from "./components/CommandPalette";
 import {
   accountVerifyPin,
   crmSetDrawerOpen,
   isTauri,
+  listAccountGroups,
   listAccounts,
   prewarmAccounts,
   securityLockApp,
@@ -18,11 +20,23 @@ import {
   setOverlayOpen,
   switchAccount,
 } from "./lib/ipc";
-import { type Account, useAppStore } from "./store";
+import { type Account, type SessionState, useAppStore } from "./store";
 
 export default function App() {
   const { t } = useTranslation();
-  const { accounts, activeAccountId, setAccounts, setActiveAccount, updateUnread } = useAppStore();
+  const {
+    accounts,
+    activeAccountId,
+    accountsStatus,
+    accountsError,
+    setAccounts,
+    setAccountsStatus,
+    setGroups,
+    setActiveAccount,
+    updateUnread,
+  } = useAppStore();
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [crmOpen, setCrmOpen] = useState(false);
@@ -45,10 +59,24 @@ export default function App() {
   }, [crmOpen]);
 
   // Hide native wa_* WebView2 child when any React modal/lock overlay is open
-  const overlayOpen = addOpen || settingsOpen || locked || pendingUnlockAccount !== null;
+  const overlayOpen =
+    addOpen || settingsOpen || locked || pendingUnlockAccount !== null || paletteOpen;
   useEffect(() => {
     void setOverlayOpen(overlayOpen, activeAccountId);
   }, [overlayOpen, activeAccountId]);
+
+  // Global command palette shortcut (Ctrl+K is also forwarded from the
+  // WhatsApp webviews through the `wa:shortcut` event).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // Clear in-memory chat context on account switch
   useEffect(() => {
@@ -68,41 +96,73 @@ export default function App() {
       setHelloAvailable(status.hello_available);
     });
 
-    const loadSavedAccounts = (attempt = 0) => {
-      listAccounts()
-        .then((list) => {
-          if (cancelled || list.length === 0) return;
-          const mapped: Account[] = list.map((a) => ({
-            id: a.id,
-            name: a.name,
-            color: a.color,
-            iconText: a.icon_text,
-            category: a.category,
-            muted: a.muted,
-            sortOrder: a.sort_order,
-            unreadCount: 0,
-            avatarDataUrl: a.avatar_data_url,
-            hasLock: a.has_lock,
-          }));
-          setAccounts(mapped);
-          const firstUnlocked = mapped.find((a) => !a.hasLock) ?? mapped[0];
-          if (!firstUnlocked.hasLock) {
-            setActiveAccount(firstUnlocked.id);
-            void switchAccount(firstUnlocked.id);
-          }
-          void prewarmAccounts(firstUnlocked.hasLock ? null : firstUnlocked.id);
-        })
-        .catch(() => {
-          if (!cancelled && attempt < 3) {
-            setTimeout(() => loadSavedAccounts(attempt + 1), 500);
-          }
-        });
+    // Never show the "add your first account" onboarding while an existing
+    // account list may still be loading. Retry with backoff instead of
+    // silently giving up (that is what made a temporary DB lock look like
+    // "all my accounts were deleted").
+    const loadSavedAccounts = async (attempt: number) => {
+      try {
+        console.debug(`Loading accounts (reload ${reloadNonce}, attempt ${attempt})`);
+        const [list, groupList] = await Promise.all([
+          listAccounts(),
+          listAccountGroups().catch(() => []),
+        ]);
+        if (cancelled) return;
+
+        setGroups(
+          groupList.map((g) => ({
+            id: g.id,
+            name: g.name,
+            color: g.color,
+            sortOrder: g.sort_order,
+          }))
+        );
+
+        const mapped: Account[] = list.map((a) => ({
+          id: a.id,
+          name: a.name,
+          color: a.color,
+          iconText: a.icon_text,
+          category: a.category,
+          muted: a.muted,
+          sortOrder: a.sort_order,
+          unreadCount: 0,
+          avatarDataUrl: a.avatar_data_url,
+          hasLock: a.has_lock,
+          groupId: a.group_id ?? null,
+        }));
+        setAccounts(mapped);
+        setAccountsStatus("ready");
+
+        // Only auto-select on the first successful load; a retry or manual
+        // refresh must not steal focus from the account the user is on.
+        const alreadyActive = useAppStore.getState().activeAccountId;
+        const firstUnlocked = mapped.find((a) => !a.hasLock) ?? mapped[0];
+        if (!alreadyActive && firstUnlocked && !firstUnlocked.hasLock) {
+          setActiveAccount(firstUnlocked.id);
+          void switchAccount(firstUnlocked.id);
+        }
+        void prewarmAccounts(alreadyActive ?? (firstUnlocked?.hasLock ? null : firstUnlocked?.id));
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Could not load accounts:", err);
+        if (attempt < 8) {
+          window.setTimeout(
+            () => void loadSavedAccounts(attempt + 1),
+            Math.min(400 * 2 ** attempt, 5000)
+          );
+        } else {
+          setAccountsStatus("error", String(err));
+        }
+      }
     };
-    loadSavedAccounts();
+
+    setAccountsStatus("loading");
+    void loadSavedAccounts(0);
     return () => {
       cancelled = true;
     };
-  }, [setAccounts, setActiveAccount]);
+  }, [reloadNonce, setAccounts, setActiveAccount, setAccountsStatus, setGroups]);
 
   // Listen to unread, shortcut & chat-context events forwarded from wa_* webviews
   useEffect(() => {
@@ -110,6 +170,12 @@ export default function App() {
     const unlistenUnread = listen<{ account_id: string; count: number }>("wa:unread", (event) => {
       updateUnread(event.payload.account_id, event.payload.count);
     });
+    const unlistenSession = listen<{ account_id: string; state: SessionState }>(
+      "wa:session",
+      (event) => {
+        useAppStore.getState().setSessionState(event.payload.account_id, event.payload.state);
+      }
+    );
     const unlistenShortcut = listen<{ account_id: string; key: string }>("wa:shortcut", (event) => {
       const match = event.payload.key.match(/^Ctrl\+([1-9])$/i);
       if (match) {
@@ -121,6 +187,8 @@ export default function App() {
         }
       } else if (event.payload.key.toLowerCase() === "ctrl+b") {
         setCrmOpen((prev) => !prev);
+      } else if (event.payload.key.toLowerCase() === "ctrl+k") {
+        setPaletteOpen((prev) => !prev);
       }
     });
     const unlistenContext = listen<{ account_id: string; contact: string; messages: string[] }>(
@@ -138,6 +206,7 @@ export default function App() {
 
     return () => {
       void unlistenUnread.then((fn) => fn());
+      void unlistenSession.then((fn) => fn());
       void unlistenShortcut.then((fn) => fn());
       void unlistenContext.then((fn) => fn());
     };
@@ -196,13 +265,41 @@ export default function App() {
         }}
         onToggleCrm={() => setCrmOpen((prev) => !prev)}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenPalette={() => setPaletteOpen(true)}
         onLockApp={() => void handleLockApp()}
         crmOpen={crmOpen}
       />
 
       {/* Main area — WhatsApp webview renders over this region when an account is active */}
       <main className="flex-1 flex items-center justify-center bg-dona-panel">
-        {accounts.length === 0 ? (
+        {accounts.length === 0 && accountsStatus === "loading" ? (
+          <div className="text-center space-y-4">
+            <div className="w-7 h-7 mx-auto rounded-full border-2 border-white/15 border-t-blue-400 animate-spin" />
+            <p className="text-gray-400 text-sm">{t("common.loadingAccounts")}</p>
+          </div>
+        ) : accounts.length === 0 && accountsStatus === "error" ? (
+          <div className="max-w-md text-center space-y-4 px-6">
+            <AlertTriangle className="w-10 h-10 mx-auto text-amber-400" />
+            <h1 className="text-lg font-semibold text-white">{t("common.loadFailedTitle")}</h1>
+            <p className="text-sm text-gray-400 leading-relaxed">{t("common.loadFailedBody")}</p>
+            {accountsError && (
+              <pre className="text-[11px] text-gray-500 bg-black/30 rounded-lg p-2 overflow-auto max-h-24 text-left whitespace-pre-wrap break-words">
+                {accountsError}
+              </pre>
+            )}
+            <button
+              type="button"
+              onClick={() => setReloadNonce((n) => n + 1)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-medium text-white transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              {t("common.retry")}
+            </button>
+            <p className="text-[11px] text-gray-600 break-all">
+              {t("common.logHint")} %LOCALAPPDATA%\com.makahar.donabridge\logs
+            </p>
+          </div>
+        ) : accounts.length === 0 ? (
           <div className="text-center space-y-4">
             <div className="text-6xl">🌉</div>
             <h1 className="text-2xl font-bold">{t("app.name")}</h1>
@@ -254,6 +351,19 @@ export default function App() {
           setEditingAccount(acc);
           setAddOpen(true);
         }}
+      />
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onSelectAccount={handleSelectAccount}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenCrm={() => setCrmOpen(true)}
+        onAddAccount={() => {
+          setEditingAccount(null);
+          setAddOpen(true);
+        }}
+        onLockApp={() => void handleLockApp()}
+        onReloadAccounts={() => setReloadNonce((n) => n + 1)}
       />
       {pendingUnlockAccount && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

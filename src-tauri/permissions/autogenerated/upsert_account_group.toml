@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-upsert-account-group"
+description = "Enables the upsert_account_group command without any pre-configured scope."
+commands.allow = ["upsert_account_group"]
+
+[[permission]]
+identifier = "deny-upsert-account-group"
+description = "Denies the upsert_account_group command without any pre-configured scope."
+commands.deny = ["upsert_account_group"]

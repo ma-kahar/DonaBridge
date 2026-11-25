@@ -33,6 +33,7 @@ tauri-plugin-log = { workspace = true }
 
 # Domain logic
 dona-core = { path = "../crates/dona-core" }
+rusqlite = { workspace = true }
 
 # MCP server
 rmcp = { workspace = true }
@@ -46,6 +47,9 @@ keyring = { workspace = true }
 
 # App Lock
 argon2 = { workspace = true }
+
+# Encrypted backups
+aes-gcm = { workspace = true }
 
 # IPC typing
 specta = { workspace = true }

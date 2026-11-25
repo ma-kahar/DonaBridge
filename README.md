@@ -31,6 +31,8 @@
 ### 1. Multi-Account Workspace
 - **Isolated Sessions:** Run multiple WhatsApp accounts (Personal, Work, Support, Sales) side-by-side. Each account uses its own isolated `WebView2` profile.
 - **Account Dock:** Switch accounts in one click (or with `Ctrl+1` .. `Ctrl+9`), customize account colors/categories, mute notifications, and see live unread counts.
+- **Order & groups:** Drag accounts in the dock to reorder them. Create colour-coded groups in **Settings → Accounts** (Shop, Clients, Personal…) and assign an account to a group when you add or edit it.
+- **Command palette (`Ctrl+K`):** Jump to an account, contact, quick reply, project or action from one search box.
 - **Quiet Hours (DND):** Set per-account Do Not Disturb schedules in **Settings**.
 - **Privacy & App Lock:** Lock the entire app or individual accounts with a PIN or **Windows Hello**.
 
@@ -53,7 +55,9 @@ Open the CRM drawer from the sidebar — or click the **Expand (`⛶`)** button 
   - Create reusable message templates with WhatsApp formatting (`*bold*`, `_italic_`, `~strike~`, `` `code` ``), emoji picker, and live preview.
   - **Vertical Quick Replies:** One-click color-coded chips that insert text directly into the WhatsApp composer.
 - **Backup & Restore:**
-  - Export and import your CRM workspace data (projects, tasks, quick replies, pinned contacts, theme) as a **JSON** file from **Settings → Security & Backup**.
+  - **Full encrypted backup** in **Settings → Data**: a password-protected `.donabk` file containing every account, CRM record, template and setting. AES-256-GCM with an Argon2id-derived key; portable between PCs (scan the WhatsApp QR code again on the new machine).
+  - Export and import your CRM workspace data (projects, tasks, quick replies, pinned contacts, theme) as a **JSON** file.
+  - **Storage & health** panel shows the database size, WebView2 profile size, account/group counts and opens the data or log folder for support.
 
 ### 3. Draft-Only AI Copilot (Optional)
 - Supports **Ollama** (100% offline/local) as well as **OpenAI**, **Anthropic**, **DeepSeek**, **Kimi**, **OpenRouter**, or any custom OpenAI-compatible API.
@@ -71,6 +75,26 @@ Dona Bridge is built to respect WhatsApp's Terms of Service:
 1. **Official Web Client Only:** Loads `https://web.whatsapp.com` inside standard WebView2 containers — no unofficial protocol reverse-engineering.
 2. **No Automation / No Bulk Sending:** No auto-responder, no bulk broadcaster, and no automated message sending. Every message is reviewed and sent manually by you.
 3. **100% Local Storage:** Contacts, notes, projects, and API keys stay on your device (SQLite + Windows Credential Manager).
+
+---
+
+## 🧭 Where your data lives
+
+| Path | Contents |
+|---|---|
+| `%LOCALAPPDATA%\com.makahar.donabridge\dona.db` | Accounts, CRM contacts, notes, reminders, templates, settings |
+| `%LOCALAPPDATA%\com.makahar.donabridge\WebView2\` | One isolated WhatsApp session per account |
+| `%LOCALAPPDATA%\com.makahar.donabridge\logs\` | Daily logs (`dona-bridge.log`) |
+
+Upgrading from an older build that kept the database in `%APPDATA%` is handled
+automatically: the database is copied once to the new location on first start.
+
+## 🩺 If accounts do not appear
+
+Dona Bridge **never deletes accounts because a read failed**. If the local
+database is locked (antivirus scan, OneDrive sync, a leftover process) the app
+shows a “Could not open your accounts” screen with a **Retry** button instead of
+the first-run setup screen. Check the log file above for the exact error.
 
 ---
 
