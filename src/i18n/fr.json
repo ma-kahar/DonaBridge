@@ -8,7 +8,7 @@
     "scanQR": "Scannez le QR code avec WhatsApp sur votre téléphone"
   },
   "accounts": {
-    "selectAccount": "Sélectionnez un compte dans la barre latérale",
+    "selectAccount": "Sélectionnez un compte dans la barre des tâches",
     "addAccount": "Ajouter un compte",
     "editAccount": "Modifier le compte",
     "deleteAccount": "Supprimer le compte",

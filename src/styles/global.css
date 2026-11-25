@@ -47,6 +47,14 @@
     background: rgb(var(--dona-accent) / 0.3);
   }
 
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
   ::-webkit-scrollbar {
     @apply w-1.5;
   }

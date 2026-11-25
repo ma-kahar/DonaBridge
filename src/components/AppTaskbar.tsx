@@ -29,9 +29,9 @@ export default function AppTaskbar({
   const unreadTotal = accounts.reduce((sum, a) => sum + a.unreadCount, 0);
 
   return (
-    <div className="h-12 shrink-0 border-t border-dona-border bg-dona-panel2 px-2 flex items-center gap-1 overflow-x-auto">
+    <div className="h-12 shrink-0 border-t border-dona-border bg-dona-panel2 px-2 flex items-center gap-1 overflow-x-auto no-scrollbar">
       {/* Account switcher, like a Windows taskbar */}
-      <div className="flex items-center gap-2 px-1 overflow-x-auto">
+      <div className="flex items-center gap-2 px-1">
         {accounts.map((account) => {
           const groupColor = groups.find((g) => g.id === account.groupId)?.color;
           const loggedOut = sessionStates[account.id] === "logged_out";
@@ -50,7 +50,7 @@ export default function AppTaskbar({
                 outline: groupColor ? `2px solid ${groupColor}` : undefined,
                 outlineOffset: "1px",
               }}
-              className={`relative w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 shadow-md shadow-black/25 transition-all ${
+              className={`relative w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 transition-all ${
                 account.id === activeAccountId
                   ? "ring-2 ring-dona-accent scale-105"
                   : "opacity-75 hover:opacity-100"

@@ -8,7 +8,7 @@
     "scanQR": "Scan the QR code with WhatsApp on your phone"
   },
   "accounts": {
-    "selectAccount": "Select an account from the sidebar",
+    "selectAccount": "Select an account from the taskbar",
     "addAccount": "Add account",
     "editAccount": "Edit account",
     "deleteAccount": "Delete account",

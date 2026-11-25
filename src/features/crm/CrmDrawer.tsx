@@ -307,13 +307,13 @@ export default function CrmDrawer({
     },
     {
       id: "templates",
-      label: t("crm.templates"),
+      label: "Templates",
       icon: <FileText className="w-4 h-4" />,
       section: "Library",
     },
     {
       id: "quickreplies",
-      label: "Quick replies",
+      label: "Quick Replies",
       icon: <MessageSquare className="w-4 h-4" />,
       section: "Library",
     },
