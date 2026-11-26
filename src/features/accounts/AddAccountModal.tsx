@@ -78,6 +78,15 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
     }
   }, [open, editingAccount]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   function handleAvatarPick(e: ChangeEvent<HTMLInputElement>) {
@@ -190,7 +199,7 @@ export default function AddAccountModal({ open, editingAccount, onClose }: AddAc
           <button
             type="button"
             onClick={onClose}
-            className="text-white/50 hover:text-white transition-colors"
+            className="text-dona-muted hover:text-dona-fg transition-colors"
             aria-label={t("common.close")}
           >
             <X className="w-5 h-5" />
