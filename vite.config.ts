@@ -16,11 +16,13 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
-  // Tauri expects a fixed port in dev
+  // Tauri expects a fixed port in dev. Bind IPv4 explicitly: on some Windows
+  // setups `localhost` resolves to ::1 while WebView2 tries 127.0.0.1 first,
+  // which leaves the shell on a blank page.
   server: {
     port: 5173,
     strictPort: true,
-    host: host || false,
+    host: host || "127.0.0.1",
     hmr: host
       ? {
           protocol: "ws",

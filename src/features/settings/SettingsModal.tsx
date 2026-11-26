@@ -34,6 +34,8 @@ import {
   type AutoBackupSettings,
   type HealthReport,
   type McpStatus,
+  type WebDavSettings,
+  type WebDavTestResult,
   type WebhookSettings,
   type WebhookTestResult,
   aiDeleteProfile,
@@ -71,6 +73,10 @@ import {
   setDndSchedule,
   testWebhook,
   upsertAccountGroup,
+  saveWebdavSettings,
+  webdavSettings,
+  webdavTest,
+  webdavUploadNow,
   webhookSecret,
   webhookSettings,
   saveWebhookSettings,
@@ -151,6 +157,11 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
   const [webhookStatus, setWebhookStatus] = useState<string | null>(null);
   const [webhookTest, setWebhookTest] = useState<WebhookTestResult | null>(null);
   const [webhookSecretValue, setWebhookSecretValue] = useState<string | null>(null);
+  const [webdav, setWebdav] = useState<WebDavSettings | null>(null);
+  const [webdavPassword, setWebdavPassword] = useState("");
+  const [webdavBusy, setWebdavBusy] = useState(false);
+  const [webdavStatus, setWebdavStatus] = useState<string | null>(null);
+  const [webdavTestResult, setWebdavTestResult] = useState<WebDavTestResult | null>(null);
 
   const [groups, setGroups] = useState<AccountGroupDto[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
@@ -198,6 +209,9 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
     void autoBackupSettings()
       .then(setAutoBackup)
       .catch((err) => setBackupStatus(String(err)));
+    void webdavSettings()
+      .then(setWebdav)
+      .catch((err) => setWebdavStatus(String(err)));
   }, [open, tab]);
 
   useEffect(() => {
@@ -715,6 +729,64 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
       setWebhook(await webhookSettings());
     } catch (err) {
       setWebhookStatus(String(err));
+    }
+  }
+
+  async function persistWebdav() {
+    if (!webdav) return null;
+    const saved = await saveWebdavSettings(
+      webdav,
+      webdavPassword.trim() ? webdavPassword : null
+    );
+    setWebdav(saved);
+    setWebdavPassword("");
+    return saved;
+  }
+
+  async function handleSaveWebdav() {
+    setWebdavBusy(true);
+    setWebdavStatus(null);
+    setWebdavTestResult(null);
+    try {
+      await persistWebdav();
+      setWebdavStatus("WebDAV settings saved.");
+    } catch (err) {
+      setWebdavStatus(String(err));
+    } finally {
+      setWebdavBusy(false);
+    }
+  }
+
+  async function handleTestWebdav() {
+    setWebdavBusy(true);
+    setWebdavStatus(null);
+    setWebdavTestResult(null);
+    try {
+      await persistWebdav();
+      setWebdavTestResult(await webdavTest());
+      setWebdav(await webdavSettings());
+    } catch (err) {
+      setWebdavStatus(String(err));
+    } finally {
+      setWebdavBusy(false);
+    }
+  }
+
+  async function handleUploadWebdav() {
+    setWebdavBusy(true);
+    setWebdavStatus(null);
+    setWebdavTestResult(null);
+    try {
+      await persistWebdav();
+      const result = await webdavUploadNow();
+      setWebdavStatus(
+        `Uploaded ${result.file} (${formatBytes(result.bytes)}) — HTTP ${result.status}`
+      );
+      setWebdav(await webdavSettings());
+    } catch (err) {
+      setWebdavStatus(String(err));
+    } finally {
+      setWebdavBusy(false);
     }
   }
 
@@ -1663,6 +1735,180 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
                         Backups include accounts, CRM data, templates and settings — not WhatsApp
                         sessions. Restore with “Restore from backup…” below using the recovery
                         code.
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                {/* WebDAV backup */}
+                <div className="rounded-xl bg-dona-dark border border-dona-border p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-white inline-flex items-center gap-1.5">
+                      <CloudUpload className="w-3.5 h-3.5 text-emerald-400" />
+                      WebDAV backup
+                    </p>
+                    {webdav && (
+                      <label className="inline-flex items-center gap-2 text-[11px] text-gray-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={webdav.enabled}
+                          onChange={(event) =>
+                            setWebdav((current) =>
+                              current ? { ...current, enabled: event.target.checked } : current
+                            )
+                          }
+                          className="w-3.5 h-3.5 accent-blue-600"
+                        />
+                        Enabled
+                      </label>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-400">
+                    Upload an encrypted backup to a WebDAV folder (Nextcloud, ownCloud, HiDrive,
+                    NAS). The file is encrypted on this PC before it is sent, so the server only
+                    stores ciphertext. The target folder must already exist.
+                  </p>
+
+                  {!webdav ? (
+                    <p className="text-[11px] text-gray-500">{t("common.loading")}</p>
+                  ) : (
+                    <>
+                      <label className="block space-y-1">
+                        <span className="text-[10px] text-gray-400">Folder URL</span>
+                        <input
+                          value={webdav.url}
+                          onChange={(event) =>
+                            setWebdav((current) =>
+                              current ? { ...current, url: event.target.value } : current
+                            )
+                          }
+                          placeholder="https://cloud.example.com/remote.php/dav/files/you/DonaBridge"
+                          className="w-full rounded-lg bg-dona-panel border border-dona-border px-2.5 py-1.5 text-[11px] text-gray-200"
+                        />
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block space-y-1">
+                          <span className="text-[10px] text-gray-400">Username</span>
+                          <input
+                            value={webdav.username}
+                            onChange={(event) =>
+                              setWebdav((current) =>
+                                current ? { ...current, username: event.target.value } : current
+                              )
+                            }
+                            placeholder="you@example.com"
+                            className="w-full rounded-lg bg-dona-panel border border-dona-border px-2.5 py-1.5 text-[11px] text-gray-200"
+                          />
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-[10px] text-gray-400">Password / app password</span>
+                          <input
+                            type="password"
+                            value={webdavPassword}
+                            onChange={(event) => setWebdavPassword(event.target.value)}
+                            placeholder={webdav.has_password ? "Saved — leave blank to keep" : "Password"}
+                            className="w-full rounded-lg bg-dona-panel border border-dona-border px-2.5 py-1.5 text-[11px] text-gray-200"
+                          />
+                        </label>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block space-y-1">
+                          <span className="text-[10px] text-gray-400">Upload every</span>
+                          <select
+                            value={webdav.interval_hours}
+                            onChange={(event) =>
+                              setWebdav((current) =>
+                                current
+                                  ? { ...current, interval_hours: Number(event.target.value) }
+                                  : current
+                              )
+                            }
+                            className="w-full rounded-lg bg-dona-panel border border-dona-border px-2 py-1.5 text-[11px] text-gray-200"
+                          >
+                            <option value={6}>6 hours</option>
+                            <option value={12}>12 hours</option>
+                            <option value={24}>24 hours</option>
+                            <option value={168}>7 days</option>
+                          </select>
+                        </label>
+                        <label className="block space-y-1">
+                          <span className="text-[10px] text-gray-400">Keep on server</span>
+                          <select
+                            value={webdav.keep}
+                            onChange={(event) =>
+                              setWebdav((current) =>
+                                current ? { ...current, keep: Number(event.target.value) } : current
+                              )
+                            }
+                            className="w-full rounded-lg bg-dona-panel border border-dona-border px-2 py-1.5 text-[11px] text-gray-200"
+                          >
+                            <option value={7}>7 backups</option>
+                            <option value={14}>14 backups</option>
+                            <option value={30}>30 backups</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={webdavBusy}
+                          onClick={() => void handleSaveWebdav()}
+                          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-[11px] font-medium text-white"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          disabled={webdavBusy || !webdav.url.trim()}
+                          onClick={() => void handleUploadWebdav()}
+                          className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <CloudUpload className="w-3.5 h-3.5" />
+                          Back up now
+                        </button>
+                        <button
+                          type="button"
+                          disabled={webdavBusy || !webdav.url.trim()}
+                          onClick={() => void handleTestWebdav()}
+                          className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          Test connection
+                        </button>
+                      </div>
+
+                      {webdavTestResult && (
+                        <p
+                          className={`text-[11px] break-all ${
+                            webdavTestResult.ok ? "text-emerald-400" : "text-red-400"
+                          }`}
+                        >
+                          {webdavTestResult.ok
+                            ? `Connection OK — HTTP ${webdavTestResult.status ?? "?"}`
+                            : (webdavTestResult.error ?? "Connection failed")}
+                        </p>
+                      )}
+
+                      {webdavStatus && (
+                        <p className="text-[11px] text-emerald-400 break-all">{webdavStatus}</p>
+                      )}
+
+                      {webdav.last_at && (
+                        <p className="text-[10px] text-gray-500 break-words">
+                          Last attempt: {new Date(webdav.last_at).toLocaleString()} ·{" "}
+                          {webdav.last_status || "no status"}
+                          {webdav.last_file && ` · ${webdav.last_file}`}
+                          {webdav.last_error && (
+                            <span className="text-red-400"> — {webdav.last_error}</span>
+                          )}
+                        </p>
+                      )}
+
+                      <p className="text-[10px] text-gray-500">
+                        Files are named <code>dona-YYYYMMDD-HHMMSS-xxxxxx.donabk</code> and the
+                        newest {webdav.keep} are kept on the server. Restore them with “Restore from
+                        backup…” below and your recovery code.
                       </p>
                     </>
                   )}

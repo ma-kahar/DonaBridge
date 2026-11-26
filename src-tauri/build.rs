@@ -102,6 +102,10 @@ fn main() {
             "webhook_secret",
             "rotate_webhook_secret",
             "test_webhook",
+            "webdav_settings",
+            "save_webdav_settings",
+            "webdav_test",
+            "webdav_upload_now",
         ]),
     ))
     .expect("failed to run tauri-build");

@@ -550,6 +550,11 @@ fn prune_auto_backups(folder: &Path, keep: usize) {
     }
 }
 
+/// The encryption key used for automatic backups (created on first use).
+pub fn auto_backup_key() -> Result<String, String> {
+    ensure_auto_backup_key()
+}
+
 fn ensure_auto_backup_key() -> Result<String, String> {
     if let Some(key) = secrets::get_secret(AUTO_BACKUP_KEY)? {
         if key.len() >= 8 {

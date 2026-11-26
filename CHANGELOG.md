@@ -19,6 +19,9 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
   longer silent; the dialog shows the error and the log path.
 - Version bumped to 0.1.1 so the fixed installer is distinguishable from the
   broken 0.1.0 build.
+- **Blank white window in development**: on machines where Windows resolves
+  `localhost` to IPv6 only, the dev server and the WebView2 shell disagreed.
+  Vite now binds `127.0.0.1` and the dev URL uses it explicitly.
 
 ### Fixed — data loss / reliability
 
@@ -46,6 +49,12 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **WebDAV backup upload** (Settings → Data & Storage): send an encrypted backup
+  to a Nextcloud, ownCloud, HiDrive or NAS WebDAV folder on a 6/12/24-hour or
+  weekly schedule, or with “Back up now”. The file is AES-256-GCM encrypted
+  before upload, the newest 7–30 are kept on the server with WebDAV DELETE,
+  credentials live in Windows Credential Manager, and “Test connection” checks
+  write access without creating a real backup.
 - **Outbound webhooks** (Settings → Integrations): send contact, deal and task
   events to n8n, Zapier, Make or your own endpoint. Deliveries are signed with
   HMAC-SHA256 over `timestamp.body` (`X-Dona-Signature: sha256=…`), include a

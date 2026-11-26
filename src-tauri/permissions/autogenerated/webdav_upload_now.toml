@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-webdav-upload-now"
+description = "Enables the webdav_upload_now command without any pre-configured scope."
+commands.allow = ["webdav_upload_now"]
+
+[[permission]]
+identifier = "deny-webdav-upload-now"
+description = "Denies the webdav_upload_now command without any pre-configured scope."
+commands.deny = ["webdav_upload_now"]

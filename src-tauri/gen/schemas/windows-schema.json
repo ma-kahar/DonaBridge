@@ -801,6 +801,12 @@
           "markdownDescription": "Enables the save_auto_backup_settings command without any pre-configured scope."
         },
         {
+          "description": "Enables the save_webdav_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-webdav-settings",
+          "markdownDescription": "Enables the save_webdav_settings command without any pre-configured scope."
+        },
+        {
           "description": "Enables the save_webhook_settings command without any pre-configured scope.",
           "type": "string",
           "const": "allow-save-webhook-settings",
@@ -937,6 +943,24 @@
           "type": "string",
           "const": "allow-wa-unread",
           "markdownDescription": "Enables the wa_unread command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the webdav_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-webdav-settings",
+          "markdownDescription": "Enables the webdav_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the webdav_test command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-webdav-test",
+          "markdownDescription": "Enables the webdav_test command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the webdav_upload_now command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-webdav-upload-now",
+          "markdownDescription": "Enables the webdav_upload_now command without any pre-configured scope."
         },
         {
           "description": "Enables the webhook_secret command without any pre-configured scope.",
@@ -1407,6 +1431,12 @@
           "markdownDescription": "Denies the save_auto_backup_settings command without any pre-configured scope."
         },
         {
+          "description": "Denies the save_webdav_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-webdav-settings",
+          "markdownDescription": "Denies the save_webdav_settings command without any pre-configured scope."
+        },
+        {
           "description": "Denies the save_webhook_settings command without any pre-configured scope.",
           "type": "string",
           "const": "deny-save-webhook-settings",
@@ -1543,6 +1573,24 @@
           "type": "string",
           "const": "deny-wa-unread",
           "markdownDescription": "Denies the wa_unread command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the webdav_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-webdav-settings",
+          "markdownDescription": "Denies the webdav_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the webdav_test command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-webdav-test",
+          "markdownDescription": "Denies the webdav_test command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the webdav_upload_now command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-webdav-upload-now",
+          "markdownDescription": "Denies the webdav_upload_now command without any pre-configured scope."
         },
         {
           "description": "Denies the webhook_secret command without any pre-configured scope.",

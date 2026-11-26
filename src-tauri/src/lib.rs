@@ -14,6 +14,7 @@ pub mod lock;
 pub mod mcp;
 pub mod secrets;
 pub mod tray;
+pub mod webdav;
 pub mod webhooks;
 pub mod webviews;
 
@@ -177,6 +178,10 @@ pub fn run() {
             commands::webhooks::webhook_secret,
             commands::webhooks::rotate_webhook_secret,
             commands::webhooks::test_webhook,
+            commands::webdav::webdav_settings,
+            commands::webdav::save_webdav_settings,
+            commands::webdav::webdav_test,
+            commands::webdav::webdav_upload_now,
         ])
         // ── Setup ──────────────────────────────────────────────────────────
         .setup(|app| {
@@ -228,6 +233,13 @@ pub fn run() {
                     let backup_handle = app_handle.clone();
                     tauri::async_runtime::spawn_blocking(move || {
                         let _ = crate::backup::auto_backup_if_due(&backup_handle);
+                    });
+                    // WebDAV upload (checks its own interval and never overlaps).
+                    let webdav_handle = app_handle.clone();
+                    tauri::async_runtime::spawn(async move {
+                        if let Err(err) = crate::webdav::auto_upload_if_due(webdav_handle).await {
+                            tracing::warn!("Automatic WebDAV backup failed: {err}");
+                        }
                     });
                     // Use try_lock() so the background timer never blocks Tauri commands
                     // that are concurrently trying to acquire the same DB mutex.

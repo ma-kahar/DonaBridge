@@ -69,6 +69,7 @@ Open the CRM drawer from the taskbar — or click the **Expand (`⛶`)** button 
     interval (6 h, 12 h, 24 h, weekly) and a retention count. Files are encrypted
     with AES-256-GCM **before** they reach the folder; a recovery code is shown
     once configured and is the password used to restore them on another PC.
+  - **WebDAV cloud backup**: upload the same encrypted backup to a Nextcloud, ownCloud, HiDrive or NAS WebDAV folder on a schedule (or “Back up now”). Files are encrypted before they leave the PC, the newest 7–30 are kept on the server, and the password is stored in Windows Credential Manager.
   - **Full manual encrypted backup**: a password-protected `.donabk` file containing every account, CRM record, template and setting. AES-256-GCM with an Argon2id-derived key; portable between PCs (scan the WhatsApp QR code again on the new machine).
   - **CRM data portability**: export the whole CRM (contacts, tags, notes, reminders, templates, pipelines, deals, custom fields, tasks) as one JSON file and import it on another PC — a safety snapshot is taken first. Deals and tasks also export per account as CSV for Excel or Sheets.
   - **Storage & health** panel shows the database size, WebView2 profile size, account/group counts and opens the data or log folder for support.

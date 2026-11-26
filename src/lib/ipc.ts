@@ -826,6 +826,54 @@ export async function testWebhook(): Promise<WebhookTestResult> {
   return invoke<WebhookTestResult>("test_webhook");
 }
 
+export interface WebDavSettings {
+  enabled: boolean;
+  url: string;
+  username: string;
+  interval_hours: number;
+  keep: number;
+  has_password: boolean;
+  last_at?: string | null;
+  last_status?: string | null;
+  last_error?: string | null;
+  last_file?: string | null;
+}
+
+export interface WebDavTestResult {
+  ok: boolean;
+  status?: number | null;
+  error?: string | null;
+}
+
+export interface WebDavUpload {
+  file: string;
+  bytes: number;
+  status: number;
+}
+
+export async function webdavSettings(): Promise<WebDavSettings | null> {
+  if (!isTauri()) return null;
+  return invoke<WebDavSettings>("webdav_settings");
+}
+
+export async function saveWebdavSettings(
+  settings: WebDavSettings,
+  password: string | null
+): Promise<WebDavSettings> {
+  if (!isTauri()) throw new Error("WebDAV upload is only available in the desktop app");
+  return invoke<WebDavSettings>("save_webdav_settings", { settings, password });
+}
+
+export async function webdavTest(): Promise<WebDavTestResult> {
+  if (!isTauri()) throw new Error("WebDAV upload is only available in the desktop app");
+  return invoke<WebDavTestResult>("webdav_test");
+}
+
+export async function webdavUploadNow(): Promise<WebDavUpload> {
+  if (!isTauri()) throw new Error("WebDAV upload is only available in the desktop app");
+  return invoke<WebDavUpload>("webdav_upload_now");
+}
+
 export async function setBackupRecoveryCode(code: string): Promise<void> {
   if (!isTauri()) throw new Error("Backups are only available in the desktop app");
   return invoke<void>("set_backup_recovery_code", { code });
