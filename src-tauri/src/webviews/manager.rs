@@ -29,6 +29,12 @@ static OVERLAY_OPEN: AtomicBool = AtomicBool::new(false);
 /// Labels of webviews whose WebView2 creation is in progress.
 static CREATING: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
+/// True when a modal is open or the app is locked: the native webview must not
+/// be shown, even if a command asks to switch/create it during startup.
+fn must_stay_hidden() -> bool {
+    OVERLAY_OPEN.load(Ordering::Relaxed) || crate::lock::is_locked()
+}
+
 /// RAII marker that releases a label from [`CREATING`] on drop.
 struct CreatingGuard(String);
 
@@ -139,7 +145,7 @@ pub async fn switch_to_account(
             let _ = existing.set_bounds(bounds);
         }
         let _ = existing.set_zoom(zoom);
-        if OVERLAY_OPEN.load(Ordering::Relaxed) {
+        if must_stay_hidden() {
             let _ = existing.hide();
         } else {
             existing.show()?;
@@ -181,7 +187,7 @@ async fn create_account_webview(
         tracing::debug!("{target_label} is already being created; waiting");
         for _ in 0..50 {
             if let Some(existing) = app.get_webview(&target_label) {
-                if visible && !OVERLAY_OPEN.load(Ordering::Relaxed) {
+                if visible && !must_stay_hidden() {
                     let _ = existing.show();
                 } else {
                     let _ = existing.hide();
@@ -227,7 +233,7 @@ async fn create_account_webview(
     }
     // Re-check the overlay *after* the slow WebView2 creation: a modal opened
     // while we were building must still cover the page.
-    if visible && !OVERLAY_OPEN.load(Ordering::Relaxed) {
+    if visible && !must_stay_hidden() {
         let _ = webview.show();
     } else {
         let _ = webview.hide();

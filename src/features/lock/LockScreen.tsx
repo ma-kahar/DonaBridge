@@ -1,5 +1,5 @@
 import { Fingerprint, Lock } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { securityUnlockHello, securityUnlockPin } from "../../lib/ipc";
 
@@ -12,24 +12,37 @@ export default function LockScreen({ helloAvailable, onUnlocked }: LockScreenPro
   const { t } = useTranslation();
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
+  const pinRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    pinRef.current?.focus();
+  }, []);
 
   async function handlePinSubmit(e: FormEvent) {
     e.preventDefault();
     setError(false);
-    const ok = await securityUnlockPin(pin);
-    if (ok) {
-      setPin("");
-      onUnlocked();
-    } else {
+    try {
+      const ok = await securityUnlockPin(pin);
+      if (ok) {
+        setPin("");
+        onUnlocked();
+      } else {
+        setError(true);
+      }
+    } catch {
       setError(true);
     }
   }
 
   async function handleHello() {
     setError(false);
-    const ok = await securityUnlockHello();
-    if (ok) {
-      onUnlocked();
+    try {
+      const ok = await securityUnlockHello();
+      if (ok) {
+        onUnlocked();
+      }
+    } catch {
+      setError(true);
     }
   }
 
@@ -46,6 +59,7 @@ export default function LockScreen({ helloAvailable, onUnlocked }: LockScreenPro
 
         <form onSubmit={handlePinSubmit} className="space-y-3">
           <input
+            ref={pinRef}
             type="password"
             value={pin}
             onChange={(e) => setPin(e.target.value)}

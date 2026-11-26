@@ -348,8 +348,72 @@ pub fn export_contacts_csv(contacts: &[Contact]) -> String {
     out
 }
 
+/// Stages the UI understands; unknown values are imported as `new`.
+const CONTACT_STAGES: [&str; 5] = ["new", "follow_up", "negotiating", "won", "do_not_contact"];
+
+/// Parse one CSV record, honouring quoted fields, escaped quotes and commas
+/// inside quotes (the exporter writes names like `"Doe, John"`).
+fn parse_csv_line(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    let mut chars = line.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '"' => {
+                if in_quotes && chars.peek() == Some(&'"') {
+                    current.push('"');
+                    chars.next();
+                } else {
+                    in_quotes = !in_quotes;
+                }
+            }
+            ',' if !in_quotes => {
+                fields.push(current.trim().to_string());
+                current.clear();
+            }
+            _ => current.push(ch),
+        }
+    }
+    fields.push(current.trim().to_string());
+    fields
+}
+
+struct CsvHeader {
+    phone: usize,
+    name: Option<usize>,
+    stage: Option<usize>,
+}
+
+fn detect_header(cols: &[String]) -> Option<CsvHeader> {
+    let find = |names: &[&str]| {
+        cols.iter().position(|column| {
+            let value = column.trim().to_lowercase();
+            names.contains(&value.as_str())
+        })
+    };
+    let phone = find(&["phone_e164", "phone", "number", "mobile"])?;
+    Some(CsvHeader {
+        phone,
+        name: find(&["display_name", "name", "full_name", "contact"]),
+        stage: find(&["stage"]),
+    })
+}
+
+fn stage_or_new(raw: &str) -> String {
+    let normalized = raw.trim().to_lowercase().replace([' ', '-'], "_");
+    if CONTACT_STAGES.contains(&normalized.as_str()) {
+        normalized
+    } else {
+        "new".to_string()
+    }
+}
+
 /// Import contacts from CSV text into the CRM (never used as a send list).
-/// Accepts headers or plain `phone,name,stage` rows.
+///
+/// Accepts the export format (`id,account_id,phone_e164,display_name,stage`),
+/// a simple `phone,name,stage` file, or any file with a header row containing
+/// phone/name/stage columns. Quoted fields, CRLF and a UTF-8 BOM are handled.
 pub fn import_contacts_csv(
     conn: &Connection,
     account_id: &str,
@@ -357,56 +421,65 @@ pub fn import_contacts_csv(
     id_gen: impl Fn() -> String,
 ) -> Result<usize> {
     let cleaned = csv_text.trim_start_matches('\u{FEFF}');
+    let mut lines = cleaned.lines().filter(|line| !line.trim().is_empty());
+    let Some(first) = lines.next() else {
+        return Ok(0);
+    };
+
+    let first_cols = parse_csv_line(first);
+    let header = detect_header(&first_cols);
     let mut imported = 0usize;
-    for (idx, line) in cleaned.lines().enumerate() {
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        let cols: Vec<&str> = trimmed
-            .split(',')
-            .map(|s| s.trim().trim_matches('"'))
-            .collect();
-        if idx == 0
-            && cols
-                .iter()
-                .any(|c| c.eq_ignore_ascii_case("phone_e164") || c.eq_ignore_ascii_case("phone"))
-        {
-            continue;
-        }
-        // Support either `id,account_id,phone,name,stage` (export format) or `phone,name,stage`
-        let (raw_phone, raw_name, raw_stage) = if cols.len() >= 5 && cols[2].starts_with('+') {
-            (cols[2], Some(cols[3]), cols[4])
-        } else if !cols.is_empty() {
-            (
-                cols[0],
-                cols.get(1).copied().filter(|s| !s.is_empty()),
-                cols.get(2).copied().unwrap_or("new"),
-            )
-        } else {
-            continue;
+
+    let mut process = |cols: &[String]| -> Result<()> {
+        let (phone_idx, name_idx, stage_idx) = match &header {
+            Some(header) => (header.phone, header.name, header.stage),
+            None if cols.len() >= 5 => (2, Some(3), Some(4)),
+            None => (
+                0,
+                (cols.len() > 1).then_some(1),
+                (cols.len() > 2).then_some(2),
+            ),
         };
+        let read = |index: Option<usize>| {
+            index
+                .and_then(|index| cols.get(index))
+                .map(|value| value.trim())
+                .unwrap_or("")
+        };
+        let raw_phone = cols.get(phone_idx).map(String::as_str).unwrap_or("");
         let phone = normalize_phone_e164(raw_phone, None);
-        if phone.is_empty() {
-            continue;
+        let digits = phone.trim_start_matches('+');
+        if digits.len() < 5 || !digits.chars().all(|ch| ch.is_ascii_digit()) {
+            return Ok(());
         }
+        let name = read(name_idx);
+        let stage = read(stage_idx);
         upsert_contact(
             conn,
             &Contact {
                 id: id_gen(),
                 account_id: account_id.to_string(),
                 phone_e164: phone,
-                display_name: raw_name.map(ToString::to_string),
-                stage: if raw_stage.is_empty() {
-                    "new".to_string()
-                } else {
-                    raw_stage.to_string()
-                },
+                display_name: (!name.is_empty()).then(|| name.to_string()),
+                stage: stage_or_new(stage),
                 ..Default::default()
             },
         )?;
         imported += 1;
+        Ok(())
+    };
+
+    if header.is_some() {
+        for line in lines {
+            process(&parse_csv_line(line))?;
+        }
+    } else {
+        process(&first_cols)?;
+        for line in lines {
+            process(&parse_csv_line(line))?;
+        }
     }
+
     Ok(imported)
 }
 
@@ -579,6 +652,42 @@ mod tests {
         let csv = export_contacts_csv(&list_contacts(&conn, "acc_1").expect("contacts"));
         assert!(csv.starts_with('\u{FEFF}'));
         assert!(csv.contains("Jean Dupont"));
+    }
+
+    #[test]
+    fn csv_import_handles_quotes_headers_and_unknown_stages() {
+        let conn = setup_db();
+        let csv = "phone,name,stage\n+8801700000001,\"Doe, John\",won\n+8801700000002,Amina,not-a-stage\nnot-a-phone,No Phone,new\n";
+        let imported =
+            import_contacts_csv(&conn, "acc_1", csv, || uuid::Uuid::new_v4().to_string())
+                .expect("import");
+        assert_eq!(imported, 2);
+
+        let contacts = list_contacts(&conn, "acc_1").expect("contacts");
+        let john = contacts
+            .iter()
+            .find(|contact| contact.phone_e164 == "+8801700000001")
+            .expect("john");
+        assert_eq!(john.display_name.as_deref(), Some("Doe, John"));
+        assert_eq!(john.stage, "won");
+        let amina = contacts
+            .iter()
+            .find(|contact| contact.phone_e164 == "+8801700000002")
+            .expect("amina");
+        assert_eq!(amina.stage, "new");
+    }
+
+    #[test]
+    fn csv_import_roundtrips_export_format_without_plus() {
+        let conn = setup_db();
+        let csv = "\u{FEFF}id,account_id,phone_e164,display_name,stage\nid-1,acc_1,8801700000003,Test User,follow_up\n";
+        let imported =
+            import_contacts_csv(&conn, "acc_1", csv, || "new-id".into()).expect("import");
+        assert_eq!(imported, 1);
+        let contacts = list_contacts(&conn, "acc_1").expect("contacts");
+        assert!(contacts
+            .iter()
+            .any(|contact| contact.phone_e164 == "+8801700000003" && contact.stage == "follow_up"));
     }
 
     #[test]

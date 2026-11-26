@@ -10,6 +10,12 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
   native WhatsApp webview area, which always paints above HTML, so it was
   invisible and unclickable. It now hides the webview while open, with a
   backdrop, Escape to close, and the list is fully usable.
+- **CSV contact import** now handles quoted names containing commas, header
+  rows in any column order, CRLF/BOM files and normalises unknown stages to
+  “New” instead of leaving a blank stage.
+- **Locked at startup**: a webview created while App Lock was engaged could
+  still be shown for a moment. Webviews now stay hidden whenever the app is
+  locked, not only when a React overlay is open.
 
 - **Full-screen CRM now works.** Expanding the drawer renders it as a real
   full-window overlay (it used to overflow past the account dock and sit behind
