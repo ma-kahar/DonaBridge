@@ -8,6 +8,7 @@ import LockScreen from "./features/lock/LockScreen";
 import SettingsModal from "./features/settings/SettingsModal";
 import CommandPalette from "./components/CommandPalette";
 import AppTaskbar from "./components/AppTaskbar";
+import TitleBar from "./components/TitleBar";
 import {
   accountVerifyPin,
   aiReadActiveChat,
@@ -74,8 +75,11 @@ export default function App() {
 
   // Check the recovery state once at startup: an unclean shutdown or a
   // database that was repaired/quarantined should be explained, not ignored.
+  // `sessionStorage` keeps the dialog dismissed if the renderer reloads during
+  // the same app run (a new run after another crash shows it again).
   useEffect(() => {
     if (!isTauri()) return;
+    if (sessionStorage.getItem("dona-recovery-dismissed") === "1") return;
     void appHealth()
       .then((health) => {
         if (health && (health.unclean_shutdown || health.recovery_notice)) {
@@ -84,6 +88,11 @@ export default function App() {
       })
       .catch(() => {});
   }, []);
+
+  function dismissRecovery() {
+    sessionStorage.setItem("dona-recovery-dismissed", "1");
+    setRecovery(null);
+  }
 
   // Hide native wa_* WebView2 child when any React modal/lock/full-screen CRM
   // overlay is open. The WhatsApp session is a native child window and always
@@ -316,6 +325,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-dona-dark text-white overflow-hidden">
+      <TitleBar />
       <div className="flex flex-1 min-h-0">
         {/* Main area — WhatsApp webview renders over this region when an account is active */}
         <main className="flex-1 flex items-center justify-center bg-dona-panel">
@@ -505,7 +515,7 @@ export default function App() {
               )}
               <button
                 type="button"
-                onClick={() => setRecovery(null)}
+                onClick={() => dismissRecovery()}
                 className="w-full py-2 rounded-lg border border-dona-border hover:bg-white/5 text-xs text-dona-fg"
               >
                 Continue
@@ -513,7 +523,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  setRecovery(null);
+                  dismissRecovery();
                   setSettingsOpen(true);
                 }}
                 className="w-full py-2 rounded-lg border border-dona-border hover:bg-white/5 text-xs text-dona-muted"

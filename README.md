@@ -29,6 +29,7 @@
 ## ✨ Detailed Features Guide
 
 ### 1. Multi-Account Workspace
+- **Custom green title bar:** a frameless window with a WhatsApp-green caption showing the logo, the active account and native-style minimise / maximise / close controls. Drag the bar to move the window, double-click it to maximise or restore.
 - **Isolated Sessions:** Run multiple WhatsApp accounts (Personal, Work, Support, Sales) side-by-side. Each account uses its own isolated `WebView2` profile.
 - **Accounts in the taskbar:** switch accounts from the bottom taskbar avatars (right-click an avatar to edit). The old left dock is gone, so WhatsApp uses the full window width.
 - **Application taskbar:** a Windows-style WhatsApp-coloured bar at the bottom of the window with the account switcher, CRM, search, add account, lock and settings.

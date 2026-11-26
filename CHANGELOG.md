@@ -46,6 +46,12 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **Native-style green title bar**: the window is now frameless with an
+  integrated WhatsApp-green caption (logo, active account, window controls).
+  Drag anywhere on the bar to move the window and double-click to
+  maximise/restore; minimise, maximise and close work as expected.
+  The WhatsApp page is positioned below the bar and above the taskbar, so no
+  content is covered.
 - **Automatic encrypted folder backups**: choose any folder (OneDrive, Google
   Drive or Mega sync folder, or an external drive), schedule 6/12/24 h or weekly,
   and keep 7–30 rolling `.donabk` files. Backups are AES-256-GCM encrypted before

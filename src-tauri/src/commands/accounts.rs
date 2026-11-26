@@ -248,6 +248,10 @@ pub async fn set_overlay_open(
     open: bool,
     active_account_id: Option<String>,
 ) -> Result<(), String> {
+    // Keep the native child webviews in sync from the Rust side: a webview that
+    // is created or switched while a modal is open must stay hidden.
+    tracing::debug!("set_overlay_open: open={open}");
+    manager::set_overlay_state(&app, open);
     if open || lock::is_locked() {
         manager::hide_all_webviews(&app);
         return Ok(());

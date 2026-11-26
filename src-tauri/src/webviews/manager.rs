@@ -6,6 +6,7 @@
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use tauri::{
     webview::WebviewBuilder, AppHandle, LogicalPosition, LogicalSize, Manager, Position, Rect,
     Size, WebviewUrl,
@@ -15,15 +16,54 @@ use super::init_script;
 
 /// Width in logical pixels reserved for the right CRM drawer when open (`w-[420px]`).
 const DRAWER_WIDTH: f64 = 420.0;
+/// Height of the custom title bar rendered by the React shell (`h-9` = 36px).
+const TITLEBAR_HEIGHT: f64 = 36.0;
 /// Height of the bottom application taskbar (`h-12` = 48px).
 const TASKBAR_HEIGHT: f64 = 48.0;
 
 static DRAWER_OPEN: AtomicBool = AtomicBool::new(false);
+/// True while a React modal/lock/full-screen CRM overlay covers the window.
+/// Child webviews always paint above HTML, so they must stay hidden — including
+/// when an account is switched or created while the overlay is open.
+static OVERLAY_OPEN: AtomicBool = AtomicBool::new(false);
+/// Labels of webviews whose WebView2 creation is in progress.
+static CREATING: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// RAII marker that releases a label from [`CREATING`] on drop.
+struct CreatingGuard(String);
+
+impl CreatingGuard {
+    fn acquire(label: &str) -> Option<Self> {
+        let mut creating = CREATING.lock().unwrap_or_else(|err| err.into_inner());
+        if creating.iter().any(|item| item == label) {
+            None
+        } else {
+            creating.push(label.to_string());
+            Some(Self(label.to_string()))
+        }
+    }
+}
+
+impl Drop for CreatingGuard {
+    fn drop(&mut self) {
+        let mut creating = CREATING.lock().unwrap_or_else(|err| err.into_inner());
+        creating.retain(|label| label != &self.0);
+    }
+}
 
 /// Update drawer open state and resize all `wa_*` webviews accordingly.
 pub fn set_drawer_open(app: &AppHandle, open: bool) {
     DRAWER_OPEN.store(open, Ordering::Relaxed);
     resize_all_webviews(app);
+}
+
+/// Remember that an overlay is open so newly created/switched webviews stay hidden.
+pub fn set_overlay_state(app: &AppHandle, open: bool) {
+    tracing::debug!("Overlay state changed: open={open}");
+    OVERLAY_OPEN.store(open, Ordering::Relaxed);
+    if open {
+        hide_all_webviews(app);
+    }
 }
 
 /// Compute the child webview bounds inside the main window.
@@ -39,10 +79,10 @@ fn webview_bounds(app: &AppHandle) -> tauri::Result<Rect> {
         0.0
     };
     let logical_w = (physical.width as f64 / scale - right_reserved).max(200.0);
-    let logical_h = (physical.height as f64 / scale - TASKBAR_HEIGHT).max(200.0);
+    let logical_h = (physical.height as f64 / scale - TASKBAR_HEIGHT - TITLEBAR_HEIGHT).max(200.0);
 
     Ok(Rect {
-        position: Position::Logical(LogicalPosition::new(0.0, 0.0)),
+        position: Position::Logical(LogicalPosition::new(0.0, TITLEBAR_HEIGHT)),
         size: Size::Logical(LogicalSize::new(logical_w, logical_h)),
     })
 }
@@ -81,6 +121,10 @@ pub async fn switch_to_account(
     zoom: f64,
 ) -> tauri::Result<()> {
     let target_label = format!("wa_{account_id}");
+    tracing::debug!(
+        "switch_to_account {account_id} (overlay_open={})",
+        OVERLAY_OPEN.load(Ordering::Relaxed)
+    );
 
     // Hide all other wa_* webviews
     for (label, webview) in app.webviews() {
@@ -95,7 +139,11 @@ pub async fn switch_to_account(
             let _ = existing.set_bounds(bounds);
         }
         let _ = existing.set_zoom(zoom);
-        existing.show()?;
+        if OVERLAY_OPEN.load(Ordering::Relaxed) {
+            let _ = existing.hide();
+        } else {
+            existing.show()?;
+        }
         return Ok(());
     }
 
@@ -126,11 +174,31 @@ async fn create_account_webview(
 ) -> tauri::Result<()> {
     let target_label = format!("wa_{account_id}");
 
+    // WebView2 creation takes a few hundred milliseconds. If a second call for
+    // the same account arrives meanwhile (startup + prewarm), wait for the first
+    // one instead of creating a duplicate WebView2 with the same profile.
+    let Some(_creating) = CreatingGuard::acquire(&target_label) else {
+        tracing::debug!("{target_label} is already being created; waiting");
+        for _ in 0..50 {
+            if let Some(existing) = app.get_webview(&target_label) {
+                if visible && !OVERLAY_OPEN.load(Ordering::Relaxed) {
+                    let _ = existing.show();
+                } else {
+                    let _ = existing.hide();
+                }
+                return Ok(());
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
+        return Ok(());
+    };
+
     // Create a new child webview inside the "main" window
     let window = app
         .get_window("main")
         .ok_or_else(|| tauri::Error::WebviewNotFound)?;
     let bounds = webview_bounds(app)?;
+    tracing::debug!("create webview {target_label}: visible={visible}");
     let data_dir = webview2_base_dir(app)?.join(profile_name);
     std::fs::create_dir_all(&data_dir)?;
 
@@ -157,7 +225,11 @@ async fn create_account_webview(
     if (zoom - 1.0).abs() > f64::EPSILON {
         let _ = webview.set_zoom(zoom);
     }
-    if !visible {
+    // Re-check the overlay *after* the slow WebView2 creation: a modal opened
+    // while we were building must still cover the page.
+    if visible && !OVERLAY_OPEN.load(Ordering::Relaxed) {
+        let _ = webview.show();
+    } else {
         let _ = webview.hide();
     }
 
@@ -221,11 +293,16 @@ pub fn close_account_webview(app: &AppHandle, account_id: &str) {
 
 /// Hide all `wa_*` webviews (e.g. when App Lock engages, Blueprint §8 #4).
 pub fn hide_all_webviews(app: &AppHandle) {
+    let mut count = 0usize;
     for (label, webview) in app.webviews() {
         if label.starts_with("wa_") {
-            let _ = webview.hide();
+            count += 1;
+            if let Err(err) = webview.hide() {
+                tracing::warn!("Could not hide {label}: {err}");
+            }
         }
     }
+    tracing::debug!("hide_all_webviews hid {count} webview(s)");
 }
 
 /// Insert a draft message into the active WhatsApp chat composer for `account_id`.

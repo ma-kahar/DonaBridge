@@ -10,7 +10,7 @@ describe("App", () => {
     // The app shows a loading state until the account list has actually been
     // read, so it can never mistake a slow read for "no accounts".
     expect(screen.getByText(/Opening your accounts/i)).toBeInTheDocument();
-    expect(await screen.findByText("Dona Bridge")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Dona Bridge" })).toBeInTheDocument();
     expect(await screen.findByText(/Add your first WhatsApp account/i)).toBeInTheDocument();
 
     const addButtons = screen.getAllByRole("button", { name: /Add account/i });
