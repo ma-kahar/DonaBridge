@@ -351,3 +351,6 @@ html.light .bg-emerald-950\/30 {
 html.light .border-emerald-900\/40 {
   border-color: rgba(4, 120, 87, 0.30) !important;
 }
+.dona-titlebar__btn--info {
+  width: 36px;
+}

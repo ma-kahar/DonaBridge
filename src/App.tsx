@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import AddAccountModal from "./features/accounts/AddAccountModal";
 import CrmDrawer from "./features/crm/CrmDrawer";
 import LockScreen from "./features/lock/LockScreen";
-import SettingsModal from "./features/settings/SettingsModal";
+import SettingsModal, { type SettingsTab } from "./features/settings/SettingsModal";
 import CommandPalette from "./components/CommandPalette";
 import AppTaskbar from "./components/AppTaskbar";
 import TitleBar from "./components/TitleBar";
@@ -52,6 +52,7 @@ export default function App() {
   const [crmOpen, setCrmOpen] = useState(false);
   const [crmExpanded, setCrmExpanded] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | undefined>(undefined);
   const [locked, setLocked] = useState(false);
   const [helloAvailable, setHelloAvailable] = useState(false);
   const [pendingUnlockAccount, setPendingUnlockAccount] = useState<Account | null>(null);
@@ -276,8 +277,17 @@ export default function App() {
     };
   }, [setActiveAccount, updateUnread]);
 
-  function handleSelectAccount(account: Account) {
-    if (account.hasLock && account.id !== activeAccountId) {
+  function openSettings(tab?: SettingsTab) {
+    setSettingsTab(tab);
+    setSettingsOpen(true);
+  }
+
+  function closeSettings() {
+    setSettingsOpen(false);
+    setSettingsTab(undefined);
+  }
+
+  function handleSelectAccount(account: Account) {    if (account.hasLock && account.id !== activeAccountId) {
       setPendingUnlockAccount(account);
       setAccountPinInput("");
       setAccountPinErr(false);
@@ -333,7 +343,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-dona-dark text-white overflow-hidden">
-      <TitleBar />
+      <TitleBar onOpenAbout={() => openSettings("about")} />
       <div className="flex flex-1 min-h-0">
         {/* Main area — WhatsApp webview renders over this region when an account is active */}
         <main className="flex-1 flex items-center justify-center bg-dona-panel">
@@ -413,7 +423,7 @@ export default function App() {
           setEditingAccount(null);
           setAddOpen(true);
         }}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={() => openSettings()}
         onLockApp={() => void handleLockApp()}
         onSelectAccount={handleSelectAccount}
         onEditAccount={(account) => {
@@ -432,7 +442,8 @@ export default function App() {
       />
       <SettingsModal
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        initialTab={settingsTab}
+        onClose={closeSettings}
         onEditAccount={(acc) => {
           setEditingAccount(acc);
           setAddOpen(true);
@@ -442,7 +453,7 @@ export default function App() {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         onSelectAccount={handleSelectAccount}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={() => openSettings()}
         onOpenCrm={() => setCrmOpen(true)}
         onAddAccount={() => {
           setEditingAccount(null);
@@ -450,6 +461,7 @@ export default function App() {
         }}
         onLockApp={() => void handleLockApp()}
         onReloadAccounts={() => setReloadNonce((n) => n + 1)}
+        onOpenAbout={() => openSettings("about")}
       />
       {pendingUnlockAccount && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -534,7 +546,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   dismissRecovery();
-                  setSettingsOpen(true);
+                  openSettings("data");
                 }}
                 className="w-full py-2 rounded-lg border border-dona-border hover:bg-white/5 text-xs text-dona-muted"
               >

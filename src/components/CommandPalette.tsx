@@ -1,6 +1,7 @@
 import {
   FileText,
   FolderKanban,
+  Info,
   Lock,
   MessageCircle,
   Moon,
@@ -32,6 +33,7 @@ interface CommandPaletteProps {
   onAddAccount: () => void;
   onLockApp: () => void;
   onReloadAccounts: () => void;
+  onOpenAbout: () => void;
 }
 
 interface PaletteItem {
@@ -62,6 +64,7 @@ export default function CommandPalette({
   onAddAccount,
   onLockApp,
   onReloadAccounts,
+  onOpenAbout,
 }: CommandPaletteProps) {
   const accounts = useAppStore((s) => s.accounts);
   const activeAccountId = useAppStore((s) => s.activeAccountId);
@@ -143,6 +146,13 @@ export default function CommandPalette({
         icon: <RefreshCw className="w-4 h-4" />,
         run: onReloadAccounts,
       },
+      {
+        id: "action-about",
+        label: "About Dona Bridge",
+        section: "Actions",
+        icon: <Info className="w-4 h-4" />,
+        run: onOpenAbout,
+      },
     ];
 
     const accountItems: PaletteItem[] = accounts.map((account) => {
@@ -210,6 +220,7 @@ export default function CommandPalette({
     templates,
     onAddAccount,
     onLockApp,
+    onOpenAbout,
     onOpenCrm,
     onOpenSettings,
     onReloadAccounts,

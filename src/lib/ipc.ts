@@ -708,6 +708,11 @@ export interface HealthReport {
   webview_bytes: number;
   version: string;
   os: string;
+  tauri_version: string;
+  webview_version?: string | null;
+  schema_version: number;
+  build_profile: string;
+  backup_dir: string;
   unclean_shutdown: boolean;
   integrity_ok: boolean;
   recovery_notice: string | null;

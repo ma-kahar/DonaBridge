@@ -1,4 +1,5 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Info } from "lucide-react";
 import { useEffect, useState } from "react";
 import { isTauri } from "../lib/ipc";
 import { useAppStore } from "../store";
@@ -43,7 +44,7 @@ function CloseGlyph() {
  * maximises on double click. Window buttons call the Tauri window API and are
  * rendered inert when the app runs in a plain browser (pnpm dev preview).
  */
-export default function TitleBar() {
+export default function TitleBar({ onOpenAbout }: { onOpenAbout: () => void }) {
   const accounts = useAppStore((s) => s.accounts);
   const activeAccountId = useAppStore((s) => s.activeAccountId);
   const active = accounts.find((account) => account.id === activeAccountId) ?? null;
@@ -118,6 +119,15 @@ export default function TitleBar() {
       </div>
 
       <div className="dona-titlebar__controls">
+        <button
+          type="button"
+          className="dona-titlebar__btn dona-titlebar__btn--info"
+          title="About Dona Bridge"
+          aria-label="About Dona Bridge"
+          onClick={onOpenAbout}
+        >
+          <Info className="w-3.5 h-3.5" />
+        </button>
         <button
           type="button"
           className="dona-titlebar__btn"

@@ -8,6 +8,7 @@ import {
   FolderOpen,
   Globe,
   HardDrive,
+  Info,
   KeyRound,
   Moon,
   Pencil,
@@ -86,15 +87,25 @@ import {
   webhookSettings,
   saveWebhookSettings,
 } from "../../lib/ipc";
+import AboutPanel from "./AboutPanel";
 import { type Account, useAppStore } from "../../store";
 
 interface SettingsModalProps {
   open: boolean;
   onClose: () => void;
   onEditAccount: (account: Account) => void;
+  initialTab?: SettingsTab;
 }
 
-type SettingsTab = "general" | "accounts" | "ai" | "security" | "data" | "integrations" | "mcp";
+export type SettingsTab =
+  | "general"
+  | "accounts"
+  | "ai"
+  | "security"
+  | "data"
+  | "integrations"
+  | "mcp"
+  | "about";
 
 const WEBHOOK_EVENT_GROUPS: { label: string; events: string[] }[] = [
   {
@@ -133,7 +144,12 @@ const PROVIDER_DEFAULTS: Record<string, { model: string; base_url: string }> = {
   custom: { model: "gpt-4o-mini", base_url: "https://api.example.com" },
 };
 
-export default function SettingsModal({ open, onClose, onEditAccount }: SettingsModalProps) {
+export default function SettingsModal({
+  open,
+  onClose,
+  onEditAccount,
+  initialTab,
+}: SettingsModalProps) {
   const { t, i18n } = useTranslation();
   const accounts = useAppStore((s) => s.accounts);
   const activeAccountId = useAppStore((s) => s.activeAccountId);
@@ -251,7 +267,13 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;  function handleProviderChange(nextProvider: string) {
+  useEffect(() => {
+    if (open && initialTab) setTab(initialTab);
+  }, [open, initialTab]);
+
+  if (!open) return null;
+
+  function handleProviderChange(nextProvider: string) {
     setProvider(nextProvider);
     const def = PROVIDER_DEFAULTS[nextProvider];
     if (def) {
@@ -867,6 +889,7 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
     { id: "ai", label: t("settings.aiProvider"), icon: KeyRound },
     { id: "security", label: t("settings.appLock"), icon: ShieldCheck },
     { id: "mcp", label: "MCP", icon: Server },
+    { id: "about", label: "About", icon: Info },
   ];
 
   return (
@@ -2458,6 +2481,8 @@ curl -H "Authorization: Bearer <token>" http://127.0.0.1:${api.port}/v1/accounts
                 </div>
               </div>
             )}
+
+            {tab === "about" && <AboutPanel />}
 
             {tab === "mcp" && (
               <div className="space-y-4 max-w-md">

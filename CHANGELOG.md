@@ -4,6 +4,17 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-26
+
+### Added
+
+- **Detailed About screen** (title-bar info button, Settings → About or the
+  “About Dona Bridge” command-palette action): version and build profile, Tauri
+  and WebView2 versions, OS/architecture, database schema, storage sizes and
+  account counts, buttons to open the data/logs/backups folders, copyable
+  system information, update check, release highlights, credits, MIT licence
+  and the independent/not-affiliated notice.
+
 ## [0.2.0] - 2026-11-26
 
 ### Fixed — startup & layout

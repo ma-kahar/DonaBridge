@@ -55,6 +55,11 @@ pub struct HealthReport {
     pub webview_bytes: u64,
     pub version: String,
     pub os: String,
+    pub tauri_version: String,
+    pub webview_version: Option<String>,
+    pub schema_version: i64,
+    pub build_profile: String,
+    pub backup_dir: String,
     pub unclean_shutdown: bool,
     pub integrity_ok: bool,
     pub recovery_notice: Option<String>,
@@ -282,7 +287,7 @@ pub fn health_report(app: &AppHandle) -> Result<HealthReport, String> {
             .unwrap_or(0)
     };
 
-    let (account_count, group_count, integrity_ok) = {
+    let (account_count, group_count, integrity_ok, schema_version) = {
         let conn = dona_core::db::get().lock();
         let accounts: i64 = conn
             .query_row("SELECT count(*) FROM accounts", [], |row| row.get(0))
@@ -294,7 +299,10 @@ pub fn health_report(app: &AppHandle) -> Result<HealthReport, String> {
             .query_row("PRAGMA quick_check(1)", [], |row| row.get::<_, String>(0))
             .map(|value| value.eq_ignore_ascii_case("ok"))
             .unwrap_or(false);
-        (accounts as usize, groups as usize, integrity)
+        let schema: i64 = conn
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .unwrap_or(0);
+        (accounts as usize, groups as usize, integrity, schema)
     };
 
     let webview_dir = dir.join("WebView2");
@@ -320,6 +328,16 @@ pub fn health_report(app: &AppHandle) -> Result<HealthReport, String> {
         webview_bytes: dir_size(&webview_dir),
         version: app.package_info().version.to_string(),
         os: format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
+        tauri_version: tauri::VERSION.to_string(),
+        webview_version: tauri::webview_version().ok(),
+        schema_version,
+        build_profile: if cfg!(debug_assertions) {
+            "debug"
+        } else {
+            "release"
+        }
+        .to_string(),
+        backup_dir: dir.join("backups").to_string_lossy().to_string(),
         unclean_shutdown: dona_core::db::last_session_unclean(),
         integrity_ok,
         recovery_notice: dona_core::db::recovery_notice(),
