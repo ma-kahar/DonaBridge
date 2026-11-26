@@ -94,7 +94,7 @@ export default function TitleBar({ onOpenAbout }: { onOpenAbout: () => void }) {
     <div className="dona-titlebar relative z-[70] shrink-0" data-tauri-drag-region>
       <div className="dona-titlebar__brand flex-1 min-w-0" data-tauri-drag-region>
         <span className="dona-titlebar__logo" data-tauri-drag-region>
-          🌉
+          <img src="/favicon.png" alt="" draggable={false} data-tauri-drag-region />
         </span>
         <span className="dona-titlebar__name" data-tauri-drag-region>
           Dona Bridge

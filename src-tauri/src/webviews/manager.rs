@@ -35,6 +35,30 @@ fn must_stay_hidden() -> bool {
     OVERLAY_OPEN.load(Ordering::Relaxed) || crate::lock::is_locked()
 }
 
+/// Permissions WhatsApp Web needs for voice messages, calls and notifications.
+///
+/// WebView2 *asks* the host before the first `getUserMedia` call. If nothing
+/// answers, the request never resolves and WhatsApp reports "Microphone not
+/// found" even though Windows exposes the device. Granting these at webview
+/// build time (before navigation) keeps the request from racing the page load.
+pub fn permission_response(
+    kind: tauri::webview::PermissionKind,
+) -> tauri::webview::PermissionResponse {
+    use tauri::webview::{PermissionKind, PermissionResponse};
+    match kind {
+        PermissionKind::Microphone
+        | PermissionKind::Camera
+        | PermissionKind::Notifications
+        | PermissionKind::ClipboardRead
+        | PermissionKind::DisplayCapture
+        | PermissionKind::Autoplay => {
+            tracing::info!("Granting webview permission: {kind}");
+            PermissionResponse::Allow
+        }
+        _ => PermissionResponse::Default,
+    }
+}
+
 /// RAII marker that releases a label from [`CREATING`] on drop.
 struct CreatingGuard(String);
 
@@ -95,7 +119,7 @@ fn webview_bounds(app: &AppHandle) -> tauri::Result<Rect> {
 
 /// Directory where per-account WebView2 data folders live.
 pub fn webview2_base_dir(app: &AppHandle) -> tauri::Result<PathBuf> {
-    Ok(app.path().app_local_data_dir()?.join("WebView2"))
+    Ok(crate::paths::data_root(app)?.join("WebView2"))
 }
 
 /// Delete any WebView2 profile folders queued from previous account deletions (Blueprint §3 #15).
@@ -208,14 +232,30 @@ async fn create_account_webview(
     let data_dir = webview2_base_dir(app)?.join(profile_name);
     std::fs::create_dir_all(&data_dir)?;
 
-    let url: tauri::Url = "https://web.whatsapp.com"
-        .parse()
-        .expect("static WhatsApp URL must parse");
+    // `DONA_DEMO=1` loads a bundled, fully fictional chat page instead of
+    // WhatsApp. Used for privacy-safe screenshots; it never touches an account.
+    let demo = std::env::var_os("DONA_DEMO").is_some();
+    let target_url = if demo {
+        WebviewUrl::App("demo/whatsapp.html".into())
+    } else {
+        WebviewUrl::External(
+            "https://web.whatsapp.com"
+                .parse()
+                .expect("static WhatsApp URL must parse"),
+        )
+    };
 
     let download_account = account_id.to_string();
-    let builder = WebviewBuilder::new(&target_label, WebviewUrl::External(url))
+    let builder = WebviewBuilder::new(&target_label, target_url)
         .data_directory(data_dir)
         .initialization_script(init_script::build_init_script(account_id))
+        // Let WhatsApp Web handle HTML5 drag & drop (files onto a chat).
+        // Tauri replaces WebView2's handler by default, which silently blocks it.
+        .disable_drag_drop_handler()
+        // Grant media permissions before the page loads. Doing this after the
+        // webview is created races WhatsApp's device enumeration, which showed
+        // up as "Microphone not found" even when a microphone was connected.
+        .on_permission_request(|_webview, kind| permission_response(kind))
         .on_new_window(|_url, _features| tauri::webview::NewWindowResponse::Allow)
         // WhatsApp documents and media are downloaded to `Downloads\Dona Bridge`
         // and recorded in the Downloads panel. Without this handler the native
@@ -273,40 +313,6 @@ async fn create_account_webview(
         let _ = webview.show();
     } else {
         let _ = webview.hide();
-    }
-
-    // Grant Microphone, Camera, Notifications & Clipboard permissions for WhatsApp Web calls
-    #[cfg(target_os = "windows")]
-    {
-        let _ = webview.with_webview(|platform_wv| {
-            use webview2_com::Microsoft::Web::WebView2::Win32::{
-                COREWEBVIEW2_PERMISSION_KIND, COREWEBVIEW2_PERMISSION_KIND_CAMERA,
-                COREWEBVIEW2_PERMISSION_KIND_CLIPBOARD_READ,
-                COREWEBVIEW2_PERMISSION_KIND_MICROPHONE,
-                COREWEBVIEW2_PERMISSION_KIND_NOTIFICATIONS, COREWEBVIEW2_PERMISSION_STATE_ALLOW,
-            };
-            use webview2_com::PermissionRequestedEventHandler;
-            unsafe {
-                if let Ok(core) = platform_wv.controller().CoreWebView2() {
-                    let mut token = 0i64;
-                    let handler = PermissionRequestedEventHandler::create(Box::new(|_, args| {
-                        if let Some(args) = args {
-                            let mut kind = COREWEBVIEW2_PERMISSION_KIND::default();
-                            args.PermissionKind(&mut kind)?;
-                            if kind == COREWEBVIEW2_PERMISSION_KIND_MICROPHONE
-                                || kind == COREWEBVIEW2_PERMISSION_KIND_CAMERA
-                                || kind == COREWEBVIEW2_PERMISSION_KIND_NOTIFICATIONS
-                                || kind == COREWEBVIEW2_PERMISSION_KIND_CLIPBOARD_READ
-                            {
-                                args.SetState(COREWEBVIEW2_PERMISSION_STATE_ALLOW)?;
-                            }
-                        }
-                        Ok(())
-                    }));
-                    let _ = core.add_PermissionRequested(&handler, &mut token);
-                }
-            }
-        });
     }
 
     tracing::info!("Created webview {target_label} (profile: {profile_name})");

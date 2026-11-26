@@ -4,6 +4,33 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-11-26
+
+### Fixed
+
+- **Voice messages / microphone.** WebView2 asks the host for microphone
+  permission before the first `getUserMedia` call. That request was previously
+  unanswered while the page was loading, so WhatsApp reported “Microphone not
+  found”. The permission is now granted when the webview is built (and globally
+  for the app shell), so recording a voice note works like in the browser.
+- **Drag and drop.** Tauri replaced WebView2’s drop handler, which silently
+  blocked HTML5 file drops. Child webviews now use the native handler, so a file
+  dropped on a chat is attached normally.
+
+### Added
+
+- **Privacy-safe demo mode** for screenshots and support:
+  `DONA_DATA_DIR` relocates the database, WebView2 profiles, backups and
+  download history to an isolated folder, and `DONA_DEMO=1` loads a bundled,
+  fictional chat page instead of WhatsApp. Seeded demo accounts/CRM come from
+  `scripts/seed-demo-data.py`; see `docs/DEMO_SCREENSHOTS.md`.
+- Screenshots section in the README, captured entirely with demo data.
+
+### Changed
+
+- New bridge/chat icon in the title bar and About screen, 128 px favicon, and
+  the wide Dona Bridge banner at the top of the README.
+
 ## [0.2.2] - 2026-11-26
 
 ### Added

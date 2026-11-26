@@ -14,6 +14,7 @@ pub mod downloads;
 pub mod local_api;
 pub mod lock;
 pub mod mcp;
+pub mod paths;
 pub mod secrets;
 pub mod tray;
 pub mod webdav;
@@ -45,6 +46,11 @@ pub fn run() {
     info!("Dona Bridge starting up");
 
     let app = tauri::Builder::default()
+        // Media permissions (microphone for voice messages, camera) are granted
+        // without an invisible WebView2 prompt that the user can never answer.
+        // Child WhatsApp webviews also set this at build time; this covers the
+        // React shell and any webview created later.
+        .on_permission_request(|_webview, kind| webviews::manager::permission_response(kind))
         // ── Plugins ────────────────────────────────────────────────────────
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // Second launch: focus the existing window instead of opening another
@@ -204,10 +210,9 @@ pub fn run() {
             // Local AppData is used on purpose: the WebView2 profiles live
             // there too, and Roaming AppData may be synced by OneDrive —
             // SQLite + a syncing folder is a classic way to "lose" accounts.
-            let local_data = app
-                .path()
-                .app_local_data_dir()
-                .expect("Could not resolve LocalAppData directory");
+            // `DONA_DATA_DIR` can relocate everything for an isolated profile.
+            let local_data =
+                paths::data_root(app.handle()).expect("Could not resolve LocalAppData directory");
             let legacy_data = app.path().app_data_dir().ok();
             dona_core::db::init_with_legacy(&local_data, legacy_data.as_deref())?;
 

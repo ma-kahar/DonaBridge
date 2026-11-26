@@ -39,9 +39,7 @@ pub struct DownloadRecord {
 }
 
 fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_local_data_dir()
-        .map_err(|e| format!("Could not resolve app data directory: {e}"))
+    crate::paths::data_root(app).map_err(|e| format!("Could not resolve app data directory: {e}"))
 }
 
 fn history_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -50,6 +48,15 @@ fn history_path(app: &AppHandle) -> Result<PathBuf, String> {
 
 /// The visible folder where downloads are saved.
 pub fn downloads_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    // Demo screenshots must not expose the real user's home directory.
+    if std::env::var_os("DONA_DEMO").is_some() {
+        if let Some(public) = std::env::var_os("PUBLIC") {
+            let dir = PathBuf::from(public).join("Downloads").join(FOLDER_NAME);
+            let _ = std::fs::create_dir_all(&dir);
+            return Ok(dir);
+        }
+    }
+
     let base = app
         .path()
         .download_dir()

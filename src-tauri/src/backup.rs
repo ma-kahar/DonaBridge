@@ -17,7 +17,7 @@ use argon2::Argon2;
 use rusqlite::{params, Connection, OpenFlags};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 
 use crate::secrets;
 
@@ -67,9 +67,7 @@ pub struct HealthReport {
 }
 
 fn data_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_local_data_dir()
-        .map_err(|e| format!("Could not resolve app data directory: {e}"))
+    crate::paths::data_root(app).map_err(|e| format!("Could not resolve app data directory: {e}"))
 }
 
 fn derive_key(password: &str, salt: &[u8]) -> Result<[u8; 32], String> {

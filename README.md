@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="src-tauri/icons/128x128.png" alt="Dona Bridge Logo" width="96" height="96" />
+  <img src="docs/assets/banner.jpg" alt="Dona Bridge - multi-account WhatsApp client with CRM" width="100%" />
   <h1>Dona Bridge</h1>
   <p><strong>A fast, lightweight, privacy-first multi-account WhatsApp Web desktop client for Windows with a built-in CRM &amp; Draft-Only AI Copilot.</strong></p>
 
@@ -19,10 +19,36 @@
 ## 📥 Download & Install (Windows)
 
 1. Go to the [**Latest Release**](https://github.com/ma-kahar/DonaBridge/releases/latest) page.
-2. Download **`Dona.Bridge_0.2.2_x64-setup.exe`**.
+2. Download **`Dona.Bridge_0.2.3_x64-setup.exe`**.
 3. Run the installer and launch **Dona Bridge**.
    - **Safe Upgrades:** Installing a newer version over an older one **keeps all your existing accounts, sessions, and CRM data intact**.
    - **Clean Uninstall:** Uninstalling asks whether you also want to remove local app data.
+
+---
+
+## Screenshots
+
+All screenshots use the built-in demo workspace - fictional accounts, contacts
+and messages - never a real WhatsApp session.
+
+| Main window (light) | CRM pipeline |
+| --- | --- |
+| ![Main window with the CRM drawer open](docs/assets/screenshots/main-light.jpg) | ![CRM pipeline in light mode](docs/assets/screenshots/crm-pipeline.jpg) |
+
+| CRM reports | Settings |
+| --- | --- |
+| ![CRM reports](docs/assets/screenshots/reports.jpg) | ![Settings and theme selector](docs/assets/screenshots/settings.jpg) |
+
+| Downloads | Dark mode |
+| --- | --- |
+| ![Download manager](docs/assets/screenshots/downloads.jpg) | ![Dark mode with the CRM open](docs/assets/screenshots/dark-mode.jpg) |
+
+| Account switcher | About |
+| --- | --- |
+| ![Account switcher](docs/assets/screenshots/account-menu.jpg) | ![About screen](docs/assets/screenshots/about.jpg) |
+
+Want your own privacy-safe screenshots? See
+[docs/DEMO_SCREENSHOTS.md](docs/DEMO_SCREENSHOTS.md) for the demo-mode workflow.
 
 ---
 
@@ -34,6 +60,8 @@
 - **Accounts in the taskbar:** switch accounts from the bottom taskbar avatars (right-click an avatar to edit). The old left dock is gone, so WhatsApp uses the full window width.
 - **Application taskbar:** a Windows-style WhatsApp-coloured bar at the bottom of the window with the account switcher, CRM, search, downloads, add account, lock and settings.
 - **Downloads:** PDFs, images and documents downloaded in WhatsApp are saved to `Downloads\Dona Bridge`; the taskbar Downloads button lists them with open, show in folder, delete, and an unread badge.
+- **Voice messages:** the microphone is granted to WhatsApp Web up front, so recording a voice note works like it does in the browser (Windows must allow desktop apps to use the microphone).
+- **Drag & drop:** drop a file onto a chat to attach it, exactly like in WhatsApp Web.
 - **Order & groups:** Drag accounts in the dock to reorder them. Create colour-coded groups in **Settings → Accounts** (Shop, Clients, Personal…) and assign an account to a group when you add or edit it.
 - **Command palette (`Ctrl+K`):** Jump to an account, contact, quick reply, project or action from one search box.
 - **Quiet Hours (DND):** Set per-account Do Not Disturb schedules in **Settings**.
