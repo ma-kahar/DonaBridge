@@ -42,6 +42,7 @@ export default function App() {
   } = useAppStore();
   const [reloadNonce, setReloadNonce] = useState(0);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
   const [recovery, setRecovery] = useState<HealthReport | null>(null);
   const [recoveryBusy, setRecoveryBusy] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
@@ -103,11 +104,18 @@ export default function App() {
     locked ||
     pendingUnlockAccount !== null ||
     paletteOpen ||
+    accountsOpen ||
     crmExpanded ||
     recovery !== null;
   useEffect(() => {
     void setOverlayOpen(overlayOpen, activeAccountId);
   }, [overlayOpen, activeAccountId]);
+
+  // The account switcher is an HTML popover; close it before another overlay
+  // (palette, settings, add/edit, lock) takes over the window.
+  useEffect(() => {
+    if (paletteOpen || settingsOpen || addOpen || locked) setAccountsOpen(false);
+  }, [paletteOpen, settingsOpen, addOpen, locked]);
 
   // Global command palette shortcut (Ctrl+K is also forwarded from the
   // WhatsApp webviews through the `wa:shortcut` event).
@@ -399,6 +407,8 @@ export default function App() {
         crmOpen={crmOpen}
         onToggleCrm={() => setCrmOpen((prev) => !prev)}
         onOpenPalette={() => setPaletteOpen(true)}
+        menuOpen={accountsOpen}
+        onMenuOpenChange={setAccountsOpen}
         onAddAccount={() => {
           setEditingAccount(null);
           setAddOpen(true);

@@ -6,6 +6,11 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Fixed — startup & layout
 
+- **Account switcher could not be used.** The dropdown opened upwards into the
+  native WhatsApp webview area, which always paints above HTML, so it was
+  invisible and unclickable. It now hides the webview while open, with a
+  backdrop, Escape to close, and the list is fully usable.
+
 - **Full-screen CRM now works.** Expanding the drawer renders it as a real
   full-window overlay (it used to overflow past the account dock and sit behind
   the native WhatsApp webview). The WhatsApp webview is hidden while the CRM is

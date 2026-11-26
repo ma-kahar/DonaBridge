@@ -8,7 +8,8 @@ import {
   Search,
   Settings,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+
+import { useEffect } from "react";
 import { type Account, useAppStore } from "../store";
 
 interface AppTaskbarProps {
@@ -20,6 +21,8 @@ interface AppTaskbarProps {
   onLockApp: () => void;
   onSelectAccount: (account: Account) => void;
   onEditAccount: (account: Account) => void;
+  menuOpen: boolean;
+  onMenuOpenChange: (open: boolean) => void;
 }
 
 function Avatar({ account, size = 28 }: { account: Account; size?: number }) {
@@ -70,34 +73,31 @@ export default function AppTaskbar({
   onLockApp,
   onSelectAccount,
   onEditAccount,
+  menuOpen,
+  onMenuOpenChange,
 }: AppTaskbarProps) {
   const accounts = useAppStore((s) => s.accounts);
   const activeAccountId = useAppStore((s) => s.activeAccountId);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
   const active = accounts.find((a) => a.id === activeAccountId) ?? accounts[0] ?? null;
 
   useEffect(() => {
     if (!menuOpen) return;
-    const onPointer = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onMenuOpenChange(false);
     };
-    document.addEventListener("mousedown", onPointer);
-    return () => document.removeEventListener("mousedown", onPointer);
-  }, [menuOpen]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen, onMenuOpenChange]);
 
   return (
-    <div
-      ref={rootRef}
-      className="relative h-12 shrink-0 border-t border-dona-border bg-dona-panel2 px-3 flex items-center gap-2"
-    >
+    <div className="relative h-12 shrink-0 border-t border-dona-border bg-dona-panel2 px-3 flex items-center gap-2">
       {/* Account switcher */}
       <button
         type="button"
-        onClick={() => setMenuOpen((open) => !open)}
+        onClick={() => onMenuOpenChange(!menuOpen)}
         className="flex items-center gap-2 rounded-xl px-2 py-1 hover:bg-dona-panel transition-colors shrink-0"
         aria-label="Switch account"
+        aria-expanded={menuOpen}
         title="Switch account"
       >
         {active ? (
@@ -183,6 +183,15 @@ export default function AppTaskbar({
       </div>
 
       {menuOpen && (
+        <button
+          type="button"
+          aria-label="Close account menu"
+          className="fixed inset-0 z-40 bg-black/30 cursor-default"
+          onClick={() => onMenuOpenChange(false)}
+        />
+      )}
+
+      {menuOpen && (
         <div className="absolute bottom-12 left-3 z-50 w-72 rounded-2xl border border-dona-border bg-dona-panel p-1.5 shadow-2xl shadow-black/30">
           <p className="px-2 pt-1 pb-1.5 text-[10px] uppercase tracking-wider text-dona-muted">
             Accounts
@@ -199,7 +208,7 @@ export default function AppTaskbar({
                 type="button"
                 onClick={() => {
                   onSelectAccount(account);
-                  setMenuOpen(false);
+                  onMenuOpenChange(false);
                 }}
                 className="flex items-center gap-2 flex-1 min-w-0 text-left"
               >
@@ -213,7 +222,7 @@ export default function AppTaskbar({
                 type="button"
                 onClick={() => {
                   onEditAccount(account);
-                  setMenuOpen(false);
+                  onMenuOpenChange(false);
                 }}
                 className="text-dona-muted hover:text-dona-fg shrink-0"
                 title="Edit account"
@@ -228,7 +237,7 @@ export default function AppTaskbar({
               type="button"
               onClick={() => {
                 onAddAccount();
-                setMenuOpen(false);
+                onMenuOpenChange(false);
               }}
               className="w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-xs text-dona-accent hover:bg-dona-panel2"
             >
