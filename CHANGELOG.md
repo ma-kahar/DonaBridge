@@ -4,6 +4,8 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-26
+
 ### Fixed — startup & layout
 
 - **Account switcher could not be used.** The dropdown opened upwards into the
