@@ -31,6 +31,7 @@ import { useTranslation } from "react-i18next";
 import {
   type AccountGroupDto,
   type AiProfile,
+  type ApiSettings,
   type AutoBackupSettings,
   type HealthReport,
   type McpStatus,
@@ -44,6 +45,7 @@ import {
   aiSetActiveProfile,
   aiUpsertProfile,
   appHealth,
+  apiSettings,
   autoBackupSettings,
   backupEncrypted,
   backupRecoveryCode,
@@ -64,8 +66,11 @@ import {
   mcpStop,
   restoreEncrypted,
   restoreSnapshot,
+  rotateApiToken,
   rotateWebhookSecret,
   saveAutoBackupSettings,
+  saveApiSettings,
+  apiToken,
   setBackupRecoveryCode,
   securityClearPin,
   securityLockStatus,
@@ -162,6 +167,10 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
   const [webdavBusy, setWebdavBusy] = useState(false);
   const [webdavStatus, setWebdavStatus] = useState<string | null>(null);
   const [webdavTestResult, setWebdavTestResult] = useState<WebDavTestResult | null>(null);
+  const [api, setApi] = useState<ApiSettings | null>(null);
+  const [apiBusy, setApiBusy] = useState(false);
+  const [apiStatus, setApiStatus] = useState<string | null>(null);
+  const [apiSecretValue, setApiSecretValue] = useState<string | null>(null);
 
   const [groups, setGroups] = useState<AccountGroupDto[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
@@ -226,6 +235,9 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
     void webhookSettings()
       .then(setWebhook)
       .catch((err) => setWebhookStatus(String(err)));
+    void apiSettings()
+      .then(setApi)
+      .catch((err) => setApiStatus(String(err)));
   }, [open, tab]);
 
   useEffect(() => {
@@ -787,6 +799,61 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
       setWebdavStatus(String(err));
     } finally {
       setWebdavBusy(false);
+    }
+  }
+
+  async function persistApi() {
+    if (!api) return null;
+    const saved = await saveApiSettings(api, null);
+    setApi(saved);
+    return saved;
+  }
+
+  async function handleSaveApi() {
+    setApiBusy(true);
+    setApiStatus(null);
+    try {
+      const saved = await persistApi();
+      setApiStatus(
+        saved?.running
+          ? `Local API running on http://127.0.0.1:${saved.port}/v1`
+          : "Local API stopped."
+      );
+    } catch (err) {
+      setApiStatus(String(err));
+    } finally {
+      setApiBusy(false);
+    }
+  }
+
+  async function handleRevealApiToken() {
+    try {
+      const value = await apiToken();
+      setApiSecretValue(value);
+      if (!value) {
+        setApiStatus("Save the API settings first to create a token.");
+      }
+    } catch (err) {
+      setApiStatus(String(err));
+    }
+  }
+
+  async function handleRotateApiToken() {
+    const confirmed = window.confirm(
+      "Rotate the API token? Clients using the old token will get 401 until you update them."
+    );
+    if (!confirmed) return;
+    setApiBusy(true);
+    setApiStatus(null);
+    try {
+      const value = await rotateApiToken();
+      setApiSecretValue(value);
+      setApi(await apiSettings());
+      setApiStatus("New API token created. Update your client.");
+    } catch (err) {
+      setApiStatus(String(err));
+    } finally {
+      setApiBusy(false);
     }
   }
 
@@ -2210,6 +2277,154 @@ X-Dona-Signature: sha256=<HMAC_SHA256(secret, timestamp + "." + body)>
 X-Dona-Delivery: <uuid>
 
 {"event":"contact.updated","sent_at":"...","data":{"contact":{...}}}`}
+                        </pre>
+                      </details>
+                    </>
+                  )}
+                </div>
+
+                {/* Read-only local API */}
+                <div className="rounded-xl bg-dona-dark border border-dona-border p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-white inline-flex items-center gap-1.5">
+                      <Server className="w-3.5 h-3.5 text-emerald-400" />
+                      Local API
+                    </p>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                        api?.running
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                          : "bg-white/5 text-gray-400 border-dona-border"
+                      }`}
+                    >
+                      {api?.running ? `Running on :${api.port}` : "Stopped"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-400">
+                    A read-only JSON API for scripts, dashboards and automation. It listens on
+                    127.0.0.1 only and every request needs a Bearer token, so nothing is exposed to
+                    your network. Changes are still made in Dona Bridge itself.
+                  </p>
+
+                  {!api ? (
+                    <p className="text-[11px] text-gray-500">{t("common.loading")}</p>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label className="inline-flex items-center gap-2 text-[11px] text-gray-300 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={api.enabled}
+                            onChange={(event) =>
+                              setApi((current) =>
+                                current ? { ...current, enabled: event.target.checked } : current
+                              )
+                            }
+                            className="w-3.5 h-3.5 accent-blue-600"
+                          />
+                          Enabled
+                        </label>
+                        <label className="inline-flex items-center gap-2 text-[10px] text-gray-400">
+                          Port
+                          <input
+                            type="number"
+                            min={1024}
+                            max={65535}
+                            value={api.port}
+                            onChange={(event) =>
+                              setApi((current) =>
+                                current
+                                  ? { ...current, port: Number(event.target.value) || 0 }
+                                  : current
+                              )
+                            }
+                            className="w-24 rounded-lg bg-dona-panel border border-dona-border px-2 py-1 text-[11px] text-gray-200"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={apiBusy}
+                          onClick={() => void handleSaveApi()}
+                          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-[11px] font-medium text-white"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          disabled={apiBusy}
+                          onClick={() => void handleRevealApiToken()}
+                          className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                          Show token
+                        </button>
+                        <button
+                          type="button"
+                          disabled={apiBusy}
+                          onClick={() => void handleRotateApiToken()}
+                          className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          Rotate token
+                        </button>
+                      </div>
+
+                      {apiSecretValue && (
+                        <div className="rounded-lg bg-amber-950/30 border border-amber-900/40 p-2.5 space-y-1.5">
+                          <p className="text-[10px] text-amber-200">
+                            API token — send it as <code>Authorization: Bearer &lt;token&gt;</code>.
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 text-[10px] text-amber-100 break-all">
+                              {apiSecretValue}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => void navigator.clipboard?.writeText(apiSecretValue)}
+                              className="text-amber-200 hover:text-white shrink-0"
+                              title="Copy API token"
+                              aria-label="Copy API token"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setApiSecretValue(null)}
+                              className="text-amber-200 hover:text-white shrink-0"
+                              title="Hide API token"
+                              aria-label="Hide API token"
+                            >
+                              <EyeOff className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {apiStatus && (
+                        <p className="text-[11px] text-emerald-400 break-all">{apiStatus}</p>
+                      )}
+
+                      <details className="text-[10px] text-gray-500">
+                        <summary className="cursor-pointer text-gray-400">
+                          Endpoints &amp; authentication
+                        </summary>
+                        <pre className="mt-1 whitespace-pre-wrap break-all bg-dona-panel border border-dona-border rounded-lg p-2 text-[10px] text-gray-300">
+{`Base URL: http://127.0.0.1:${api.port}/v1
+Authorization: Bearer <token>
+
+GET /health
+GET /accounts
+GET /contacts?account_id=...
+GET /contacts/{id}/timeline
+GET /deals?account_id=...[&pipeline_id=...]
+GET /tasks?account_id=...
+GET /report?account_id=...[&pipeline_id=...]
+GET /templates[?account_id=...]
+
+curl -H "Authorization: Bearer <token>" http://127.0.0.1:${api.port}/v1/accounts`}
                         </pre>
                       </details>
                     </>

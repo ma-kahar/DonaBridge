@@ -49,6 +49,11 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **Read-only local API** (Settings → Integrations): a token-protected JSON API
+  on `127.0.0.1` (default port 8787) for dashboards and automation. Endpoints
+  cover accounts, contacts, contact timelines, deals, tasks, reports and
+  templates. Off by default, GET-only, no CORS headers, Bearer token stored in
+  Windows Credential Manager, with reveal/rotate and a configurable port.
 - **WebDAV backup upload** (Settings → Data & Storage): send an encrypted backup
   to a Nextcloud, ownCloud, HiDrive or NAS WebDAV folder on a 6/12/24-hour or
   weekly schedule, or with “Back up now”. The file is AES-256-GCM encrypted

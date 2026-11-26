@@ -417,6 +417,18 @@
           "markdownDescription": "Enables the ai_upsert_profile command without any pre-configured scope."
         },
         {
+          "description": "Enables the api_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-api-settings",
+          "markdownDescription": "Enables the api_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the api_token command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-api-token",
+          "markdownDescription": "Enables the api_token command without any pre-configured scope."
+        },
+        {
           "description": "Enables the app_health command without any pre-configured scope.",
           "type": "string",
           "const": "allow-app-health",
@@ -789,10 +801,22 @@
           "markdownDescription": "Enables the restore_snapshot command without any pre-configured scope."
         },
         {
+          "description": "Enables the rotate_api_token command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-rotate-api-token",
+          "markdownDescription": "Enables the rotate_api_token command without any pre-configured scope."
+        },
+        {
           "description": "Enables the rotate_webhook_secret command without any pre-configured scope.",
           "type": "string",
           "const": "allow-rotate-webhook-secret",
           "markdownDescription": "Enables the rotate_webhook_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_api_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-api-settings",
+          "markdownDescription": "Enables the save_api_settings command without any pre-configured scope."
         },
         {
           "description": "Enables the save_auto_backup_settings command without any pre-configured scope.",
@@ -1045,6 +1069,18 @@
           "type": "string",
           "const": "deny-ai-upsert-profile",
           "markdownDescription": "Denies the ai_upsert_profile command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the api_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-api-settings",
+          "markdownDescription": "Denies the api_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the api_token command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-api-token",
+          "markdownDescription": "Denies the api_token command without any pre-configured scope."
         },
         {
           "description": "Denies the app_health command without any pre-configured scope.",
@@ -1419,10 +1455,22 @@
           "markdownDescription": "Denies the restore_snapshot command without any pre-configured scope."
         },
         {
+          "description": "Denies the rotate_api_token command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-rotate-api-token",
+          "markdownDescription": "Denies the rotate_api_token command without any pre-configured scope."
+        },
+        {
           "description": "Denies the rotate_webhook_secret command without any pre-configured scope.",
           "type": "string",
           "const": "deny-rotate-webhook-secret",
           "markdownDescription": "Denies the rotate_webhook_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_api_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-api-settings",
+          "markdownDescription": "Denies the save_api_settings command without any pre-configured scope."
         },
         {
           "description": "Denies the save_auto_backup_settings command without any pre-configured scope.",

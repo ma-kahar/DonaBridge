@@ -76,6 +76,7 @@ Open the CRM drawer from the taskbar — or click the **Expand (`⛶`)** button 
 - **Integrations (Settings → Integrations):**
   - **Outbound webhooks** send `contact.*`, `deal.*` and `task.*` events to n8n, Zapier, Make or your own endpoint. Nothing is sent until you enable it.
   - Every delivery is signed with **HMAC-SHA256** over `timestamp.body` and carries `X-Dona-Event`, `X-Dona-Timestamp`, `X-Dona-Signature` and `X-Dona-Delivery` headers; there is a “Send test delivery” button and the last status is shown. The signing secret is stored in Windows Credential Manager and can be revealed or rotated.
+  - **Read-only local API** for scripts and dashboards: `GET /v1/accounts`, `/v1/contacts`, `/v1/contacts/{id}/timeline`, `/v1/deals`, `/v1/tasks`, `/v1/report`, `/v1/templates` and `/v1/health` on `http://127.0.0.1:8787/v1`. It is off by default, bound to loopback only, GET-only and requires `Authorization: Bearer <token>`; the token lives in Credential Manager and can be revealed or rotated.
 
 ### 3. Draft-Only AI Copilot (Optional)
 - Supports **Ollama** (100% offline/local) as well as **OpenAI**, **Anthropic**, **DeepSeek**, **Kimi**, **OpenRouter**, or any custom OpenAI-compatible API.

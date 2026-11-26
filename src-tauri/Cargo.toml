@@ -46,6 +46,9 @@ tokio = { workspace = true }
 hmac = { workspace = true }
 sha2 = { workspace = true }
 
+# Local API
+tiny_http = { workspace = true }
+
 # Secrets
 keyring = { workspace = true }
 

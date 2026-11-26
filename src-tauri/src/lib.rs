@@ -10,6 +10,7 @@ use tracing::info;
 pub mod ai;
 pub mod backup;
 pub mod commands;
+pub mod local_api;
 pub mod lock;
 pub mod mcp;
 pub mod secrets;
@@ -182,6 +183,10 @@ pub fn run() {
             commands::webdav::save_webdav_settings,
             commands::webdav::webdav_test,
             commands::webdav::webdav_upload_now,
+            commands::local_api::api_settings,
+            commands::local_api::save_api_settings,
+            commands::local_api::api_token,
+            commands::local_api::rotate_api_token,
         ])
         // ── Setup ──────────────────────────────────────────────────────────
         .setup(|app| {
@@ -285,6 +290,15 @@ pub fn run() {
                 }
             });
 
+            // Read-only local API (disabled by default).
+            match local_api::start() {
+                Ok(settings) if settings.running => {
+                    info!("Local API listening on 127.0.0.1:{}", settings.port);
+                }
+                Ok(_) => {}
+                Err(err) => tracing::warn!("Local API could not start: {err}"),
+            }
+
             info!("Setup complete");
 
             // The window is created hidden (see tauri.conf.json). Autostart
@@ -324,6 +338,8 @@ pub fn run() {
 
     app.run(|app, event| {
         if let tauri::RunEvent::Exit = event {
+            // Close the local API listener before the process goes away.
+            crate::local_api::stop();
             // Encrypted folder backup (if enabled and due) before we close.
             let _ = crate::backup::auto_backup_if_due(app);
             // Final automatic snapshot + clear the crash marker.

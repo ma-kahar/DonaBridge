@@ -49,6 +49,9 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 # Webhook signatures (HMAC-SHA256)
 hmac = "0.12"
 sha2 = "0.10"
+
+# Local read-only HTTP API
+tiny_http = "0.12"
 tokio = { version = "1", features = ["full"] }
 
 # Backups

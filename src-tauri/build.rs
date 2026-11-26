@@ -106,6 +106,10 @@ fn main() {
             "save_webdav_settings",
             "webdav_test",
             "webdav_upload_now",
+            "api_settings",
+            "save_api_settings",
+            "api_token",
+            "rotate_api_token",
         ]),
     ))
     .expect("failed to run tauri-build");

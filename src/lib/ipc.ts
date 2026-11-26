@@ -874,6 +874,36 @@ export async function webdavUploadNow(): Promise<WebDavUpload> {
   return invoke<WebDavUpload>("webdav_upload_now");
 }
 
+export interface ApiSettings {
+  enabled: boolean;
+  port: number;
+  has_token: boolean;
+  running: boolean;
+}
+
+export async function apiSettings(): Promise<ApiSettings | null> {
+  if (!isTauri()) return null;
+  return invoke<ApiSettings>("api_settings");
+}
+
+export async function saveApiSettings(
+  settings: ApiSettings,
+  token: string | null
+): Promise<ApiSettings> {
+  if (!isTauri()) throw new Error("The local API is only available in the desktop app");
+  return invoke<ApiSettings>("save_api_settings", { settings, token });
+}
+
+export async function apiToken(): Promise<string | null> {
+  if (!isTauri()) return null;
+  return invoke<string | null>("api_token");
+}
+
+export async function rotateApiToken(): Promise<string> {
+  if (!isTauri()) throw new Error("The local API is only available in the desktop app");
+  return invoke<string>("rotate_api_token");
+}
+
 export async function setBackupRecoveryCode(code: string): Promise<void> {
   if (!isTauri()) throw new Error("Backups are only available in the desktop app");
   return invoke<void>("set_backup_recovery_code", { code });
