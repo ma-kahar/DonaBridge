@@ -24,6 +24,10 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
   Vite now binds `127.0.0.1` and the dev URL uses it explicitly.
 - **Light-mode banners**: warning, success and error boxes now use dark text on
   a light tint instead of pale text on a dark tint.
+- **Startup could show a minimised window**: when the saved state was
+  maximised, the state plugin ran before the window was shown and left it
+  minimised. The show path now unminimises first (and does the same when a
+  second launch focuses the existing window).
 
 ### Fixed — data loss / reliability
 

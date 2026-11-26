@@ -48,6 +48,7 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // Second launch: focus the existing window instead of opening another
             if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
                 let _ = window.show();
                 let _ = window.set_focus();
             }
@@ -309,6 +310,9 @@ pub fn run() {
                 if start_minimized {
                     let _ = window.hide();
                 } else {
+                    // The window-state plugin may maximise/hide the window
+                    // before this hook runs; `show()` alone leaves it minimised.
+                    let _ = window.unminimize();
                     let _ = window.show();
                     let _ = window.set_focus();
                 }
