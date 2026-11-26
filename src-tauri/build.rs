@@ -97,6 +97,11 @@ fn main() {
             "create_auto_backup_now",
             "backup_recovery_code",
             "set_backup_recovery_code",
+            "webhook_settings",
+            "save_webhook_settings",
+            "webhook_secret",
+            "rotate_webhook_secret",
+            "test_webhook",
         ]),
     ))
     .expect("failed to run tauri-build");

@@ -14,6 +14,7 @@ pub mod lock;
 pub mod mcp;
 pub mod secrets;
 pub mod tray;
+pub mod webhooks;
 pub mod webviews;
 
 #[cfg(target_os = "windows")]
@@ -171,6 +172,11 @@ pub fn run() {
             commands::data::create_auto_backup_now,
             commands::data::backup_recovery_code,
             commands::data::set_backup_recovery_code,
+            commands::webhooks::webhook_settings,
+            commands::webhooks::save_webhook_settings,
+            commands::webhooks::webhook_secret,
+            commands::webhooks::rotate_webhook_secret,
+            commands::webhooks::test_webhook,
         ])
         // ── Setup ──────────────────────────────────────────────────────────
         .setup(|app| {

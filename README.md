@@ -72,6 +72,9 @@ Open the CRM drawer from the taskbar — or click the **Expand (`⛶`)** button 
   - **Full manual encrypted backup**: a password-protected `.donabk` file containing every account, CRM record, template and setting. AES-256-GCM with an Argon2id-derived key; portable between PCs (scan the WhatsApp QR code again on the new machine).
   - **CRM data portability**: export the whole CRM (contacts, tags, notes, reminders, templates, pipelines, deals, custom fields, tasks) as one JSON file and import it on another PC — a safety snapshot is taken first. Deals and tasks also export per account as CSV for Excel or Sheets.
   - **Storage & health** panel shows the database size, WebView2 profile size, account/group counts and opens the data or log folder for support.
+- **Integrations (Settings → Integrations):**
+  - **Outbound webhooks** send `contact.*`, `deal.*` and `task.*` events to n8n, Zapier, Make or your own endpoint. Nothing is sent until you enable it.
+  - Every delivery is signed with **HMAC-SHA256** over `timestamp.body` and carries `X-Dona-Event`, `X-Dona-Timestamp`, `X-Dona-Signature` and `X-Dona-Delivery` headers; there is a “Send test delivery” button and the last status is shown. The signing secret is stored in Windows Credential Manager and can be revealed or rotated.
 
 ### 3. Draft-Only AI Copilot (Optional)
 - Supports **Ollama** (100% offline/local) as well as **OpenAI**, **Anthropic**, **DeepSeek**, **Kimi**, **OpenRouter**, or any custom OpenAI-compatible API.

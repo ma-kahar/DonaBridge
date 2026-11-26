@@ -46,6 +46,12 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **Outbound webhooks** (Settings → Integrations): send contact, deal and task
+  events to n8n, Zapier, Make or your own endpoint. Deliveries are signed with
+  HMAC-SHA256 over `timestamp.body` (`X-Dona-Signature: sha256=…`), include a
+  timestamp and delivery id, retry server errors, and record the last status.
+  The signing secret lives in Windows Credential Manager; nothing is sent until
+  webhooks are enabled.
 - **CRM data portability** (Settings → Data & Storage): export the entire CRM —
   contacts, tags, notes, reminders, quick-reply templates, pipelines, deals,
   custom fields and tasks — as one readable JSON file, and import it on another

@@ -789,10 +789,22 @@
           "markdownDescription": "Enables the restore_snapshot command without any pre-configured scope."
         },
         {
+          "description": "Enables the rotate_webhook_secret command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-rotate-webhook-secret",
+          "markdownDescription": "Enables the rotate_webhook_secret command without any pre-configured scope."
+        },
+        {
           "description": "Enables the save_auto_backup_settings command without any pre-configured scope.",
           "type": "string",
           "const": "allow-save-auto-backup-settings",
           "markdownDescription": "Enables the save_auto_backup_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the save_webhook_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-save-webhook-settings",
+          "markdownDescription": "Enables the save_webhook_settings command without any pre-configured scope."
         },
         {
           "description": "Enables the secret_delete command without any pre-configured scope.",
@@ -867,6 +879,12 @@
           "markdownDescription": "Enables the switch_account command without any pre-configured scope."
         },
         {
+          "description": "Enables the test_webhook command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-test-webhook",
+          "markdownDescription": "Enables the test_webhook command without any pre-configured scope."
+        },
+        {
           "description": "Enables the upsert_account command without any pre-configured scope.",
           "type": "string",
           "const": "allow-upsert-account",
@@ -919,6 +937,18 @@
           "type": "string",
           "const": "allow-wa-unread",
           "markdownDescription": "Enables the wa_unread command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the webhook_secret command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-webhook-secret",
+          "markdownDescription": "Enables the webhook_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the webhook_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-webhook-settings",
+          "markdownDescription": "Enables the webhook_settings command without any pre-configured scope."
         },
         {
           "description": "Denies the account_clear_pin command without any pre-configured scope.",
@@ -1365,10 +1395,22 @@
           "markdownDescription": "Denies the restore_snapshot command without any pre-configured scope."
         },
         {
+          "description": "Denies the rotate_webhook_secret command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-rotate-webhook-secret",
+          "markdownDescription": "Denies the rotate_webhook_secret command without any pre-configured scope."
+        },
+        {
           "description": "Denies the save_auto_backup_settings command without any pre-configured scope.",
           "type": "string",
           "const": "deny-save-auto-backup-settings",
           "markdownDescription": "Denies the save_auto_backup_settings command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the save_webhook_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-save-webhook-settings",
+          "markdownDescription": "Denies the save_webhook_settings command without any pre-configured scope."
         },
         {
           "description": "Denies the secret_delete command without any pre-configured scope.",
@@ -1443,6 +1485,12 @@
           "markdownDescription": "Denies the switch_account command without any pre-configured scope."
         },
         {
+          "description": "Denies the test_webhook command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-test-webhook",
+          "markdownDescription": "Denies the test_webhook command without any pre-configured scope."
+        },
+        {
           "description": "Denies the upsert_account command without any pre-configured scope.",
           "type": "string",
           "const": "deny-upsert-account",
@@ -1495,6 +1543,18 @@
           "type": "string",
           "const": "deny-wa-unread",
           "markdownDescription": "Denies the wa_unread command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the webhook_secret command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-webhook-secret",
+          "markdownDescription": "Denies the webhook_secret command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the webhook_settings command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-webhook-settings",
+          "markdownDescription": "Denies the webhook_settings command without any pre-configured scope."
         },
         {
           "description": "This permission set configures if your\napplication can enable or disable auto\nstarting the application on boot.\n\n#### Granted Permissions\n\nIt allows all to check, enable and\ndisable the automatic start on boot.\n\n\n#### This default permission set includes:\n\n- `allow-enable`\n- `allow-disable`\n- `allow-is-enabled`",

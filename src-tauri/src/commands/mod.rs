@@ -9,3 +9,4 @@ pub mod mcp;
 pub mod security;
 pub mod wa;
 pub mod wa_extra;
+pub mod webhooks;

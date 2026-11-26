@@ -19,6 +19,7 @@ import {
   Trash2,
   Upload,
   Users,
+  Webhook,
   X,
 } from "lucide-react";
 import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
@@ -33,6 +34,8 @@ import {
   type AutoBackupSettings,
   type HealthReport,
   type McpStatus,
+  type WebhookSettings,
+  type WebhookTestResult,
   aiDeleteProfile,
   aiDetectModels,
   aiListProfiles,
@@ -59,13 +62,18 @@ import {
   mcpStop,
   restoreEncrypted,
   restoreSnapshot,
+  rotateWebhookSecret,
   saveAutoBackupSettings,
   setBackupRecoveryCode,
   securityClearPin,
   securityLockStatus,
   securitySetPin,
   setDndSchedule,
+  testWebhook,
   upsertAccountGroup,
+  webhookSecret,
+  webhookSettings,
+  saveWebhookSettings,
 } from "../../lib/ipc";
 import { type Account, useAppStore } from "../../store";
 
@@ -75,7 +83,22 @@ interface SettingsModalProps {
   onEditAccount: (account: Account) => void;
 }
 
-type SettingsTab = "general" | "accounts" | "ai" | "security" | "data" | "mcp";
+type SettingsTab = "general" | "accounts" | "ai" | "security" | "data" | "integrations" | "mcp";
+
+const WEBHOOK_EVENT_GROUPS: { label: string; events: string[] }[] = [
+  {
+    label: "Contacts",
+    events: ["contact.created", "contact.updated", "contact.deleted"],
+  },
+  {
+    label: "Deals",
+    events: ["deal.created", "deal.updated", "deal.deleted"],
+  },
+  {
+    label: "Tasks",
+    events: ["task.created", "task.updated", "task.deleted"],
+  },
+];
 
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
@@ -123,6 +146,11 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
   const [crmBusy, setCrmBusy] = useState(false);
   const [crmStatus, setCrmStatus] = useState<string | null>(null);
   const [crmAccountId, setCrmAccountId] = useState("");
+  const [webhook, setWebhook] = useState<WebhookSettings | null>(null);
+  const [webhookBusy, setWebhookBusy] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState<string | null>(null);
+  const [webhookTest, setWebhookTest] = useState<WebhookTestResult | null>(null);
+  const [webhookSecretValue, setWebhookSecretValue] = useState<string | null>(null);
 
   const [groups, setGroups] = useState<AccountGroupDto[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
@@ -179,9 +207,23 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
     if (preferred) setCrmAccountId(preferred.id);
   }, [accounts, activeAccountId, crmAccountId]);
 
-  if (!open) return null;
+  useEffect(() => {
+    if (!open || tab !== "integrations") return;
+    void webhookSettings()
+      .then(setWebhook)
+      .catch((err) => setWebhookStatus(String(err)));
+  }, [open, tab]);
 
-  function handleProviderChange(nextProvider: string) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;  function handleProviderChange(nextProvider: string) {
     setProvider(nextProvider);
     const def = PROVIDER_DEFAULTS[nextProvider];
     if (def) {
@@ -606,10 +648,81 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
     }
   }
 
+  function toggleWebhookEvent(event: string) {
+    setWebhook((current) => {
+      if (!current) return current;
+      const events = current.events.includes(event)
+        ? current.events.filter((item) => item !== event)
+        : [...current.events, event];
+      return { ...current, events };
+    });
+  }
+
+  async function handleSaveWebhook() {
+    if (!webhook) return;
+    setWebhookBusy(true);
+    setWebhookStatus(null);
+    try {
+      const saved = await saveWebhookSettings(webhook);
+      setWebhook(saved);
+      setWebhookStatus(saved.enabled ? "Webhooks enabled." : "Webhook settings saved.");
+    } catch (err) {
+      setWebhookStatus(String(err));
+    } finally {
+      setWebhookBusy(false);
+    }
+  }
+
+  async function handleTestWebhook() {
+    if (!webhook) return;
+    setWebhookBusy(true);
+    setWebhookStatus(null);
+    setWebhookTest(null);
+    try {
+      const saved = await saveWebhookSettings(webhook);
+      setWebhook(saved);
+      const result = await testWebhook();
+      setWebhookTest(result);
+      setWebhook(await webhookSettings());
+    } catch (err) {
+      setWebhookStatus(String(err));
+    } finally {
+      setWebhookBusy(false);
+    }
+  }
+
+  async function handleRevealWebhookSecret() {
+    try {
+      const value = await webhookSecret();
+      setWebhookSecretValue(value);
+      if (!value) {
+        setWebhookStatus("Save the webhook settings first to create a signing secret.");
+      }
+    } catch (err) {
+      setWebhookStatus(String(err));
+    }
+  }
+
+  async function handleRotateWebhookSecret() {
+    const confirmed = window.confirm(
+      "Rotate the signing secret? Update your endpoint with the new secret, otherwise its signature checks will fail."
+    );
+    if (!confirmed) return;
+    try {
+      const value = await rotateWebhookSecret();
+      setWebhookSecretValue(value);
+      setWebhookStatus("New signing secret created. Copy it into your endpoint now.");
+      setWebhook(await webhookSettings());
+    } catch (err) {
+      setWebhookStatus(String(err));
+    }
+  }
+
   const navItems: { id: SettingsTab; label: string; icon: typeof Globe }[] = [
     { id: "general", label: t("settings.tabGeneral"), icon: Globe },
     { id: "accounts", label: t("settings.tabAccounts"), icon: Users },
     { id: "data", label: t("settings.tabData"), icon: HardDrive },
+    { id: "integrations", label: "Integrations", icon: Webhook },
     { id: "ai", label: t("settings.aiProvider"), icon: KeyRound },
     { id: "security", label: t("settings.appLock"), icon: ShieldCheck },
     { id: "mcp", label: "MCP", icon: Server },
@@ -624,7 +737,7 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
           <button
             type="button"
             onClick={onClose}
-            className="text-white/50 hover:text-white"
+            className="text-dona-muted hover:text-dona-fg"
             aria-label={t("common.close")}
           >
             <X className="w-5 h-5" />
@@ -1653,6 +1766,208 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
                       />
                     </label>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {tab === "integrations" && (
+              <div className="space-y-4 max-w-2xl">
+                <div className="rounded-xl bg-dona-dark border border-dona-border p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-white inline-flex items-center gap-1.5">
+                      <Webhook className="w-3.5 h-3.5 text-emerald-400" />
+                      Outbound webhooks
+                    </p>
+                    <label className="inline-flex items-center gap-2 text-[11px] text-gray-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={webhook?.enabled ?? false}
+                        onChange={(event) =>
+                          setWebhook((current) =>
+                            current ? { ...current, enabled: event.target.checked } : current
+                          )
+                        }
+                        className="w-3.5 h-3.5 accent-blue-600"
+                      />
+                      Enabled
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-gray-400">
+                    Send CRM changes to n8n, Zapier, Make or your own endpoint. Every request is
+                    signed with HMAC-SHA256 so your endpoint can verify it came from Dona Bridge.
+                    Nothing leaves this PC until you enable it.
+                  </p>
+
+                  {!webhook ? (
+                    <p className="text-[11px] text-gray-500">{t("common.loading")}</p>
+                  ) : (
+                    <>
+                      <label className="block space-y-1">
+                        <span className="text-[10px] text-gray-400">Endpoint URL</span>
+                        <input
+                          value={webhook.url}
+                          onChange={(event) =>
+                            setWebhook((current) =>
+                              current ? { ...current, url: event.target.value } : current
+                            )
+                          }
+                          placeholder="https://hooks.example.com/dona"
+                          className="w-full rounded-lg bg-dona-panel border border-dona-border px-2.5 py-1.5 text-[11px] text-gray-200"
+                        />
+                      </label>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {WEBHOOK_EVENT_GROUPS.map((group) => (
+                          <div key={group.label} className="space-y-1">
+                            <p className="text-[10px] uppercase tracking-wider text-gray-500">
+                              {group.label}
+                            </p>
+                            {group.events.map((event) => (
+                              <label
+                                key={event}
+                                className="flex items-center gap-2 text-[11px] text-gray-300 cursor-pointer"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={webhook.events.includes(event)}
+                                  onChange={() => toggleWebhookEvent(event)}
+                                  className="w-3.5 h-3.5 accent-blue-600"
+                                />
+                                {event.split(".")[1]}
+                              </label>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={webhookBusy}
+                          onClick={() => void handleSaveWebhook()}
+                          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-[11px] font-medium text-white"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          disabled={webhookBusy || !webhook.url.trim()}
+                          onClick={() => void handleTestWebhook()}
+                          className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <Webhook className="w-3.5 h-3.5" />
+                          Send test delivery
+                        </button>
+                        <button
+                          type="button"
+                          disabled={webhookBusy}
+                          onClick={() => void handleRevealWebhookSecret()}
+                          className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                          Show secret
+                        </button>
+                        <button
+                          type="button"
+                          disabled={webhookBusy}
+                          onClick={() => void handleRotateWebhookSecret()}
+                          className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          Rotate secret
+                        </button>
+                      </div>
+
+                      {webhookSecretValue && (
+                        <div className="rounded-lg bg-amber-950/30 border border-amber-900/40 p-2.5 space-y-1.5">
+                          <p className="text-[10px] text-amber-200">
+                            Signing secret — copy it into your endpoint. Without it the endpoint
+                            cannot verify deliveries.
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 text-[10px] text-amber-100 break-all">
+                              {webhookSecretValue}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void navigator.clipboard?.writeText(webhookSecretValue)
+                              }
+                              className="text-amber-200 hover:text-white shrink-0"
+                              title="Copy secret"
+                              aria-label="Copy signing secret"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setWebhookSecretValue(null)}
+                              className="text-amber-200 hover:text-white shrink-0"
+                              title="Hide secret"
+                              aria-label="Hide signing secret"
+                            >
+                              <EyeOff className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {webhookTest && (
+                        <div
+                          className={`rounded-lg border p-2.5 space-y-1 ${
+                            webhookTest.ok
+                              ? "bg-emerald-950/30 border-emerald-900/40"
+                              : "bg-red-950/30 border-red-900/40"
+                          }`}
+                        >
+                          <p
+                            className={`text-[11px] ${
+                              webhookTest.ok ? "text-emerald-300" : "text-red-300"
+                            }`}
+                          >
+                            {webhookTest.ok
+                              ? `Test delivered — HTTP ${webhookTest.status ?? "?"}`
+                              : (webhookTest.error ?? "Test failed")}
+                          </p>
+                          {webhookTest.response && (
+                            <p className="text-[10px] text-gray-400 break-all">
+                              Response: {webhookTest.response}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {webhookStatus && (
+                        <p className="text-[11px] text-emerald-400 break-all">{webhookStatus}</p>
+                      )}
+
+                      {webhook.last_at && (
+                        <p className="text-[10px] text-gray-500 break-words">
+                          Last delivery: {new Date(webhook.last_at).toLocaleString()} ·{" "}
+                          {webhook.last_status || "no status"}
+                          {webhook.last_error && (
+                            <span className="text-red-400"> — {webhook.last_error}</span>
+                          )}
+                        </p>
+                      )}
+
+                      <details className="text-[10px] text-gray-500">
+                        <summary className="cursor-pointer text-gray-400">
+                          Signature format &amp; example request
+                        </summary>
+                        <pre className="mt-1 whitespace-pre-wrap break-all bg-dona-panel border border-dona-border rounded-lg p-2 text-[10px] text-gray-300">
+{`POST <your URL>
+Content-Type: application/json
+X-Dona-Event: contact.updated
+X-Dona-Timestamp: 1700000000
+X-Dona-Signature: sha256=<HMAC_SHA256(secret, timestamp + "." + body)>
+X-Dona-Delivery: <uuid>
+
+{"event":"contact.updated","sent_at":"...","data":{"contact":{...}}}`}
+                        </pre>
+                      </details>
+                    </>
+                  )}
                 </div>
               </div>
             )}

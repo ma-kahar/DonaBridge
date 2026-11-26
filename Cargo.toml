@@ -45,6 +45,10 @@ rmcp = { version = "0.1", features = ["server", "transport-sse", "transport-io",
 
 # AI / HTTP
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+
+# Webhook signatures (HMAC-SHA256)
+hmac = "0.12"
+sha2 = "0.10"
 tokio = { version = "1", features = ["full"] }
 
 # Backups

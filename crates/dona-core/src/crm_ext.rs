@@ -440,6 +440,12 @@ pub fn list_tasks(conn: &Connection, account_id: &str) -> Result<Vec<CrmTask>> {
     Ok(out)
 }
 
+pub fn get_task(conn: &Connection, id: &str) -> Result<Option<CrmTask>> {
+    let sql = format!("SELECT {TASK_COLUMNS} FROM crm_tasks WHERE id = ?1");
+    let mut stmt = conn.prepare(&sql)?;
+    Ok(stmt.query_row(params![id], task_row).optional()?)
+}
+
 pub fn upsert_task(conn: &Connection, task: &CrmTask) -> Result<CrmTask> {
     let status = if task.status.is_empty() {
         "open".to_string()

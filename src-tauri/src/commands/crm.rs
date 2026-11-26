@@ -10,6 +10,7 @@ use dona_core::{
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
+use crate::webhooks;
 use crate::webviews::manager;
 
 #[derive(Debug, Clone, Serialize)]
@@ -134,6 +135,7 @@ pub async fn crm_upsert_contact(contact: ContactDto) -> Result<ContactDto, Strin
     };
     let conn = db::get().lock();
     let previous = core_crm::get_contact(&conn, &model.id).map_err(|e| e.to_string())?;
+    let created = previous.is_none();
     let saved = core_crm::upsert_contact(&conn, &model).map_err(|e| e.to_string())?;
 
     match previous {
@@ -163,13 +165,30 @@ pub async fn crm_upsert_contact(contact: ContactDto) -> Result<ContactDto, Strin
         _ => {}
     }
 
-    Ok(ContactDto::from(saved))
+    let dto = ContactDto::from(saved);
+    webhooks::emit(
+        if created {
+            "contact.created"
+        } else {
+            "contact.updated"
+        },
+        serde_json::json!({ "contact": &dto }),
+    );
+    Ok(dto)
 }
 
 #[tauri::command]
 pub async fn crm_delete_contact(id: String) -> Result<(), String> {
     let conn = db::get().lock();
-    core_crm::delete_contact(&conn, &id).map_err(|e| e.to_string())
+    let previous = core_crm::get_contact(&conn, &id).map_err(|e| e.to_string())?;
+    core_crm::delete_contact(&conn, &id).map_err(|e| e.to_string())?;
+    if let Some(before) = previous {
+        webhooks::emit(
+            "contact.deleted",
+            serde_json::json!({ "contact": ContactDto::from(before) }),
+        );
+    }
+    Ok(())
 }
 
 #[tauri::command]

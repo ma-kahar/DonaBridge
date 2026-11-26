@@ -782,6 +782,50 @@ export async function backupRecoveryCode(): Promise<string> {
   return invoke<string>("backup_recovery_code");
 }
 
+export interface WebhookSettings {
+  enabled: boolean;
+  url: string;
+  events: string[];
+  has_secret: boolean;
+  last_at?: string | null;
+  last_status?: string | null;
+  last_error?: string | null;
+}
+
+export interface WebhookTestResult {
+  ok: boolean;
+  status?: number | null;
+  response: string;
+  error?: string | null;
+}
+
+export async function webhookSettings(): Promise<WebhookSettings | null> {
+  if (!isTauri()) return null;
+  return invoke<WebhookSettings>("webhook_settings");
+}
+
+export async function saveWebhookSettings(
+  settings: WebhookSettings
+): Promise<WebhookSettings> {
+  if (!isTauri()) throw new Error("Webhooks are only available in the desktop app");
+  return invoke<WebhookSettings>("save_webhook_settings", { settings });
+}
+
+export async function webhookSecret(): Promise<string | null> {
+  if (!isTauri()) return null;
+  return invoke<string | null>("webhook_secret");
+}
+
+export async function rotateWebhookSecret(): Promise<string> {
+  if (!isTauri()) throw new Error("Webhooks are only available in the desktop app");
+  return invoke<string>("rotate_webhook_secret");
+}
+
+export async function testWebhook(): Promise<WebhookTestResult> {
+  if (!isTauri()) throw new Error("Webhooks are only available in the desktop app");
+  return invoke<WebhookTestResult>("test_webhook");
+}
+
 export async function setBackupRecoveryCode(code: string): Promise<void> {
   if (!isTauri()) throw new Error("Backups are only available in the desktop app");
   return invoke<void>("set_backup_recovery_code", { code });

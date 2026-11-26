@@ -9,6 +9,8 @@ use dona_core::{
     },
 };
 
+use crate::webhooks;
+
 #[tauri::command]
 pub async fn crm_list_pipelines() -> Result<Vec<PipelineWithStages>, String> {
     tokio::task::spawn_blocking(|| {
@@ -111,6 +113,14 @@ pub async fn crm_upsert_deal(mut deal: Deal) -> Result<Deal, String> {
                 );
             }
         }
+        webhooks::emit(
+            if is_new {
+                "deal.created"
+            } else {
+                "deal.updated"
+            },
+            serde_json::json!({ "deal": &saved }),
+        );
         Ok::<_, String>(saved)
     })
     .await
@@ -121,6 +131,9 @@ pub async fn crm_upsert_deal(mut deal: Deal) -> Result<Deal, String> {
 pub async fn crm_move_deal(id: String, stage_id: String, sort_order: i32) -> Result<Deal, String> {
     tokio::task::spawn_blocking(move || {
         let conn = db::get().lock();
+        let previous_stage = crm_ext::get_deal(&conn, &id)
+            .map_err(|e| e.to_string())?
+            .map(|deal| deal.stage_id);
         let moved =
             crm_ext::move_deal(&conn, &id, &stage_id, sort_order).map_err(|e| e.to_string())?;
         if let Some(contact_id) = moved.contact_id.as_deref() {
@@ -140,6 +153,10 @@ pub async fn crm_move_deal(id: String, stage_id: String, sort_order: i32) -> Res
                 &format!("Deal moved to {stage_name}: {}", moved.title),
             );
         }
+        webhooks::emit(
+            "deal.updated",
+            serde_json::json!({ "deal": &moved, "moved_from": previous_stage }),
+        );
         Ok::<_, String>(moved)
     })
     .await
@@ -150,7 +167,12 @@ pub async fn crm_move_deal(id: String, stage_id: String, sort_order: i32) -> Res
 pub async fn crm_delete_deal(id: String) -> Result<(), String> {
     tokio::task::spawn_blocking(move || {
         let conn = db::get().lock();
-        crm_ext::delete_deal(&conn, &id).map_err(|e| e.to_string())
+        let previous = crm_ext::get_deal(&conn, &id).map_err(|e| e.to_string())?;
+        crm_ext::delete_deal(&conn, &id).map_err(|e| e.to_string())?;
+        if let Some(deal) = previous {
+            webhooks::emit("deal.deleted", serde_json::json!({ "deal": deal }));
+        }
+        Ok(())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -252,6 +274,14 @@ pub async fn crm_upsert_task(mut task: CrmTask) -> Result<CrmTask, String> {
                 );
             }
         }
+        webhooks::emit(
+            if is_new {
+                "task.created"
+            } else {
+                "task.updated"
+            },
+            serde_json::json!({ "task": &saved }),
+        );
         Ok::<_, String>(saved)
     })
     .await
@@ -262,7 +292,12 @@ pub async fn crm_upsert_task(mut task: CrmTask) -> Result<CrmTask, String> {
 pub async fn crm_delete_task(id: String) -> Result<(), String> {
     tokio::task::spawn_blocking(move || {
         let conn = db::get().lock();
-        crm_ext::delete_task(&conn, &id).map_err(|e| e.to_string())
+        let previous = crm_ext::get_task(&conn, &id).map_err(|e| e.to_string())?;
+        crm_ext::delete_task(&conn, &id).map_err(|e| e.to_string())?;
+        if let Some(task) = previous {
+            webhooks::emit("task.deleted", serde_json::json!({ "task": task }));
+        }
+        Ok(())
     })
     .await
     .map_err(|e| e.to_string())?
