@@ -19,7 +19,7 @@
 ## 📥 Download & Install (Windows)
 
 1. Go to the [**Latest Release**](https://github.com/ma-kahar/DonaBridge/releases/latest) page.
-2. Download **`Dona Bridge_0.2.0_x64-setup.exe`**.
+2. Download **`Dona.Bridge_0.2.0_x64-setup.exe`**.
 3. Run the installer and launch **Dona Bridge**.
    - **Safe Upgrades:** Installing a newer version over an older one **keeps all your existing accounts, sessions, and CRM data intact**.
    - **Clean Uninstall:** Uninstalling asks whether you also want to remove local app data.
