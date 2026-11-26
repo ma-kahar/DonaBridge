@@ -1,6 +1,7 @@
 import {
   Check,
   ChevronDown,
+  Download,
   Lock,
   PanelRightOpen,
   Pencil,
@@ -16,6 +17,8 @@ interface AppTaskbarProps {
   crmOpen: boolean;
   onToggleCrm: () => void;
   onOpenPalette: () => void;
+  onOpenDownloads: () => void;
+  downloadsUnread: number;
   onAddAccount: () => void;
   onOpenSettings: () => void;
   onLockApp: () => void;
@@ -68,6 +71,8 @@ export default function AppTaskbar({
   crmOpen,
   onToggleCrm,
   onOpenPalette,
+  onOpenDownloads,
+  downloadsUnread,
   onAddAccount,
   onOpenSettings,
   onLockApp,
@@ -137,6 +142,22 @@ export default function AppTaskbar({
       >
         <Search className="w-3.5 h-3.5" />
         <span className="hidden sm:inline">Search</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={onOpenDownloads}
+        className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] text-dona-muted hover:bg-dona-panel hover:text-dona-fg transition-colors shrink-0"
+        title="Downloads"
+        aria-label="Downloads"
+      >
+        <Download className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Downloads</span>
+        {downloadsUnread > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center">
+            {downloadsUnread > 9 ? "9+" : downloadsUnread}
+          </span>
+        )}
       </button>
 
       <button

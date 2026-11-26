@@ -9,6 +9,7 @@ import SettingsModal, { type SettingsTab } from "./features/settings/SettingsMod
 import CommandPalette from "./components/CommandPalette";
 import AppTaskbar from "./components/AppTaskbar";
 import TitleBar from "./components/TitleBar";
+import DownloadsPanel from "./features/downloads/DownloadsPanel";
 import {
   accountVerifyPin,
   aiReadActiveChat,
@@ -43,6 +44,8 @@ export default function App() {
   const [reloadNonce, setReloadNonce] = useState(0);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [accountsOpen, setAccountsOpen] = useState(false);
+  const [downloadsOpen, setDownloadsOpen] = useState(false);
+  const [downloadsUnread, setDownloadsUnread] = useState(0);
   const [recovery, setRecovery] = useState<HealthReport | null>(null);
   const [recoveryBusy, setRecoveryBusy] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
@@ -91,6 +94,24 @@ export default function App() {
       .catch(() => {});
   }, []);
 
+  // Count finished downloads for the taskbar badge; the Downloads panel also
+  // refreshes itself from the same event.
+  useEffect(() => {
+    if (!isTauri()) return;
+    let alive = true;
+    let unlisten: (() => void) | undefined;
+    void listen("download-finished", () => {
+      setDownloadsUnread((count) => count + 1);
+    }).then((fn) => {
+      if (alive) unlisten = fn;
+      else fn();
+    });
+    return () => {
+      alive = false;
+      unlisten?.();
+    };
+  }, []);
+
   function dismissRecovery() {
     sessionStorage.setItem("dona-recovery-dismissed", "1");
     setRecovery(null);
@@ -106,6 +127,7 @@ export default function App() {
     pendingUnlockAccount !== null ||
     paletteOpen ||
     accountsOpen ||
+    downloadsOpen ||
     crmExpanded ||
     recovery !== null;
   useEffect(() => {
@@ -419,6 +441,11 @@ export default function App() {
         onOpenPalette={() => setPaletteOpen(true)}
         menuOpen={accountsOpen}
         onMenuOpenChange={setAccountsOpen}
+        onOpenDownloads={() => {
+          setDownloadsOpen(true);
+          setDownloadsUnread(0);
+        }}
+        downloadsUnread={downloadsUnread}
         onAddAccount={() => {
           setEditingAccount(null);
           setAddOpen(true);
@@ -449,6 +476,7 @@ export default function App() {
           setAddOpen(true);
         }}
       />
+      <DownloadsPanel open={downloadsOpen} onClose={() => setDownloadsOpen(false)} />
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}

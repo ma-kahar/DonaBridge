@@ -909,6 +909,47 @@ export async function rotateApiToken(): Promise<string> {
   return invoke<string>("rotate_api_token");
 }
 
+export interface DownloadRecord {
+  id: string;
+  account_id: string;
+  file_name: string;
+  path: string;
+  url: string;
+  bytes: number;
+  success: boolean;
+  created_at: string;
+}
+
+export async function listDownloads(): Promise<DownloadRecord[]> {
+  if (!isTauri()) return [];
+  return invoke<DownloadRecord[]>("downloads_list");
+}
+
+export async function downloadsFolder(): Promise<string> {
+  if (!isTauri()) return "";
+  return invoke<string>("downloads_folder");
+}
+
+export async function openDownload(path: string): Promise<void> {
+  if (!isTauri()) throw new Error("Downloads are only available in the desktop app");
+  return invoke<void>("download_open", { path });
+}
+
+export async function revealDownload(path: string): Promise<void> {
+  if (!isTauri()) throw new Error("Downloads are only available in the desktop app");
+  return invoke<void>("download_reveal", { path });
+}
+
+export async function removeDownload(id: string, deleteFile: boolean): Promise<void> {
+  if (!isTauri()) throw new Error("Downloads are only available in the desktop app");
+  return invoke<void>("download_remove", { id, deleteFile });
+}
+
+export async function clearDownloads(): Promise<void> {
+  if (!isTauri()) throw new Error("Downloads are only available in the desktop app");
+  return invoke<void>("downloads_clear");
+}
+
 export async function setBackupRecoveryCode(code: string): Promise<void> {
   if (!isTauri()) throw new Error("Backups are only available in the desktop app");
   return invoke<void>("set_backup_recovery_code", { code });

@@ -735,6 +735,42 @@
           "markdownDescription": "Enables the delete_account_group command without any pre-configured scope."
         },
         {
+          "description": "Enables the download_open command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-download-open",
+          "markdownDescription": "Enables the download_open command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the download_remove command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-download-remove",
+          "markdownDescription": "Enables the download_remove command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the download_reveal command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-download-reveal",
+          "markdownDescription": "Enables the download_reveal command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the downloads_clear command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-downloads-clear",
+          "markdownDescription": "Enables the downloads_clear command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the downloads_folder command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-downloads-folder",
+          "markdownDescription": "Enables the downloads_folder command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the downloads_list command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-downloads-list",
+          "markdownDescription": "Enables the downloads_list command without any pre-configured scope."
+        },
+        {
           "description": "Enables the export_diagnostics command without any pre-configured scope.",
           "type": "string",
           "const": "allow-export-diagnostics",
@@ -1387,6 +1423,42 @@
           "type": "string",
           "const": "deny-delete-account-group",
           "markdownDescription": "Denies the delete_account_group command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the download_open command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-download-open",
+          "markdownDescription": "Denies the download_open command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the download_remove command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-download-remove",
+          "markdownDescription": "Denies the download_remove command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the download_reveal command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-download-reveal",
+          "markdownDescription": "Denies the download_reveal command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the downloads_clear command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-downloads-clear",
+          "markdownDescription": "Denies the downloads_clear command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the downloads_folder command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-downloads-folder",
+          "markdownDescription": "Denies the downloads_folder command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the downloads_list command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-downloads-list",
+          "markdownDescription": "Denies the downloads_list command without any pre-configured scope."
         },
         {
           "description": "Denies the export_diagnostics command without any pre-configured scope.",

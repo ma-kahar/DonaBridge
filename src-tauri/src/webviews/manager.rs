@@ -212,10 +212,46 @@ async fn create_account_webview(
         .parse()
         .expect("static WhatsApp URL must parse");
 
+    let download_account = account_id.to_string();
     let builder = WebviewBuilder::new(&target_label, WebviewUrl::External(url))
         .data_directory(data_dir)
         .initialization_script(init_script::build_init_script(account_id))
-        .on_new_window(|_url, _features| tauri::webview::NewWindowResponse::Allow);
+        .on_new_window(|_url, _features| tauri::webview::NewWindowResponse::Allow)
+        // WhatsApp documents and media are downloaded to `Downloads\Dona Bridge`
+        // and recorded in the Downloads panel. Without this handler the native
+        // child webview has no download UI, so PDFs appeared to do nothing.
+        .on_download(move |webview, event| {
+            match event {
+                tauri::webview::DownloadEvent::Requested { url, destination } => {
+                    let suggested = destination
+                        .file_name()
+                        .and_then(|name| name.to_str())
+                        .unwrap_or("download")
+                        .to_string();
+                    match crate::downloads::unique_destination(webview.app_handle(), &suggested) {
+                        Ok(path) => {
+                            tracing::info!(
+                                "Download requested from {url}; saving to {}",
+                                path.display()
+                            );
+                            *destination = path;
+                        }
+                        Err(err) => tracing::warn!("Could not prepare download folder: {err}"),
+                    }
+                }
+                tauri::webview::DownloadEvent::Finished { url, path, success } => {
+                    crate::downloads::record_finished(
+                        webview.app_handle(),
+                        &download_account,
+                        url.as_str(),
+                        path,
+                        success,
+                    );
+                }
+                _ => {}
+            }
+            true
+        });
 
     let webview = match bounds.position {
         Position::Logical(pos) => match bounds.size {

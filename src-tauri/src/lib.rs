@@ -10,6 +10,7 @@ use tracing::info;
 pub mod ai;
 pub mod backup;
 pub mod commands;
+pub mod downloads;
 pub mod local_api;
 pub mod lock;
 pub mod mcp;
@@ -184,6 +185,12 @@ pub fn run() {
             commands::webdav::save_webdav_settings,
             commands::webdav::webdav_test,
             commands::webdav::webdav_upload_now,
+            commands::downloads::downloads_list,
+            commands::downloads::downloads_folder,
+            commands::downloads::download_open,
+            commands::downloads::download_reveal,
+            commands::downloads::download_remove,
+            commands::downloads::downloads_clear,
             commands::local_api::api_settings,
             commands::local_api::save_api_settings,
             commands::local_api::api_token,

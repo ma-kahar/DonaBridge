@@ -19,7 +19,7 @@
 ## 📥 Download & Install (Windows)
 
 1. Go to the [**Latest Release**](https://github.com/ma-kahar/DonaBridge/releases/latest) page.
-2. Download **`Dona.Bridge_0.2.1_x64-setup.exe`**.
+2. Download **`Dona.Bridge_0.2.2_x64-setup.exe`**.
 3. Run the installer and launch **Dona Bridge**.
    - **Safe Upgrades:** Installing a newer version over an older one **keeps all your existing accounts, sessions, and CRM data intact**.
    - **Clean Uninstall:** Uninstalling asks whether you also want to remove local app data.
@@ -32,7 +32,8 @@
 - **Custom green title bar:** a frameless window with a WhatsApp-green caption showing the logo, the active account and native-style minimise / maximise / close controls. Drag the bar to move the window, double-click it to maximise or restore.
 - **Isolated Sessions:** Run multiple WhatsApp accounts (Personal, Work, Support, Sales) side-by-side. Each account uses its own isolated `WebView2` profile.
 - **Accounts in the taskbar:** switch accounts from the bottom taskbar avatars (right-click an avatar to edit). The old left dock is gone, so WhatsApp uses the full window width.
-- **Application taskbar:** a Windows-style WhatsApp-coloured bar at the bottom of the window with the account switcher, CRM, search, add account, lock and settings.
+- **Application taskbar:** a Windows-style WhatsApp-coloured bar at the bottom of the window with the account switcher, CRM, search, downloads, add account, lock and settings.
+- **Downloads:** PDFs, images and documents downloaded in WhatsApp are saved to `Downloads\Dona Bridge`; the taskbar Downloads button lists them with open, show in folder, delete, and an unread badge.
 - **Order & groups:** Drag accounts in the dock to reorder them. Create colour-coded groups in **Settings → Accounts** (Shop, Clients, Personal…) and assign an account to a group when you add or edit it.
 - **Command palette (`Ctrl+K`):** Jump to an account, contact, quick reply, project or action from one search box.
 - **Quiet Hours (DND):** Set per-account Do Not Disturb schedules in **Settings**.

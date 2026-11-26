@@ -263,6 +263,7 @@ export default function AboutPanel() {
           <ul className="text-[11px] text-gray-400 space-y-1.5">
             {[
               "Multiple isolated WhatsApp Web accounts in one window",
+              "WhatsApp file downloads with a built-in manager",
               "Automatic snapshots, crash recovery and encrypted backups",
               "Local CRM with pipelines, deals, tasks and reports",
               "Signed webhooks and a read-only local API",
@@ -335,7 +336,7 @@ export default function AboutPanel() {
           Highlights
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-gray-400">
-          <span>• Detailed About screen with live system information</span>
+          <span>• WhatsApp file downloads and a download manager</span>
           <span>• Crash detection and one-click snapshot restore</span>
           <span>• Encrypted folder and WebDAV backups</span>
           <span>• Portable CRM JSON export/import</span>

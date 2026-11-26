@@ -4,6 +4,19 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-26
+
+### Added
+
+- **WhatsApp file downloads now work.** PDFs, images and documents downloaded
+  inside a WhatsApp webview are saved to `Downloads\Dona Bridge` instead of
+  doing nothing.
+- **Download manager**: a Downloads button in the taskbar (with an unread
+  badge) opens a panel listing every file with account, size, time and status.
+  Open the file, show it in Explorer, remove it from the list, delete it from
+  disk, clear the history, or open the downloads folder.
+- A native Windows notification is shown when a download completes.
+
 ## [0.2.1] - 2026-11-26
 
 ### Added
