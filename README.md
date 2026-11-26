@@ -86,7 +86,7 @@ Open the CRM drawer from the taskbar — or click the **Expand (`⛶`)** button 
 
 ### 4. Themes & Languages
 - **WhatsApp palette:** the whole app uses WhatsApp's colours (`#0B141A` / `#111B21` / `#202C33` dark, `#F0F2F5` / `#FFFFFF` / `#E9EDEF` light) with the signature teal accent (`#00A884`).
-- Toggle between Dark Mode and Light Mode anytime from the CRM header (`☀️` / `🌙`). Light mode has full contrast-corrected text, inputs and buttons.
+- Toggle between Dark Mode and Light Mode anytime from the CRM header (`☀️` / `🌙`) or **Settings → General → Theme**. Light mode has full contrast-corrected text, inputs, buttons and status banners.
 - Available in **English**, **বাংলা (Bengali)**, and **Français (French)**.
 
 ---

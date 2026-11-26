@@ -137,6 +137,8 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
   const { t, i18n } = useTranslation();
   const accounts = useAppStore((s) => s.accounts);
   const activeAccountId = useAppStore((s) => s.activeAccountId);
+  const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
   const [tab, setTab] = useState<SettingsTab>("general");
 
   const [hasPin, setHasPin] = useState(false);
@@ -923,6 +925,30 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
                     <option value="fr">Français</option>
                     <option value="bn">বাংলা</option>
                   </select>
+                </div>
+
+                <div className="border-t border-dona-border pt-4 space-y-2">
+                  <p className="text-sm text-white">Theme</p>
+                  <p className="text-[11px] text-gray-400">
+                    Dark and Light both follow the WhatsApp palette.
+                  </p>
+                  <div className="inline-flex rounded-lg border border-dona-border overflow-hidden">
+                    {(["dark", "light"] as const).map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => setTheme(option)}
+                        aria-pressed={theme === option}
+                        className={`px-4 py-1.5 text-xs font-medium transition-colors ${
+                          theme === option
+                            ? "bg-dona-accent text-white"
+                            : "text-gray-300 hover:bg-white/5"
+                        }`}
+                      >
+                        {option === "dark" ? "Dark" : "Light"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="border-t border-dona-border pt-4 space-y-2">

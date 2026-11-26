@@ -311,3 +311,43 @@
     max-width: 130px;
   }
 }
+
+/* Keyboard focus must always be visible (Tailwind preflight removes it). */
+:focus-visible {
+  outline: 2px solid rgb(var(--dona-accent));
+  outline-offset: 2px;
+}
+
+/* -- Light-mode contrast for warning / success / error text --------------- */
+html.light .text-amber-100,
+html.light .text-amber-200,
+html.light .text-amber-300,
+html.light .text-amber-400 {
+  color: #92400e !important;
+}
+html.light .bg-amber-950\/30 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+}
+html.light .border-amber-900\/40 {
+  border-color: rgba(180, 83, 9, 0.35) !important;
+}
+html.light .text-emerald-300,
+html.light .text-emerald-400 {
+  color: #047857 !important;
+}
+html.light .text-red-300,
+html.light .text-red-400 {
+  color: #b91c1c !important;
+}
+html.light .bg-red-950\/30 {
+  background-color: rgba(239, 68, 68, 0.10) !important;
+}
+html.light .border-red-900\/40 {
+  border-color: rgba(185, 28, 28, 0.32) !important;
+}
+html.light .bg-emerald-950\/30 {
+  background-color: rgba(16, 185, 129, 0.10) !important;
+}
+html.light .border-emerald-900\/40 {
+  border-color: rgba(4, 120, 87, 0.30) !important;
+}

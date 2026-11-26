@@ -39,6 +39,13 @@ interface AppState {
   setSessionState: (id: string, state: SessionState) => void;
   updateUnread: (id: string, count: number) => void;
   toggleTheme: () => void;
+  setTheme: (theme: "dark" | "light") => void;
+}
+
+function applyTheme(next: "dark" | "light") {
+  localStorage.setItem("dona_theme", next);
+  document.documentElement.classList.toggle("dark", next === "dark");
+  document.documentElement.classList.toggle("light", next === "light");
 }
 
 const savedTheme: "dark" | "light" =
@@ -68,11 +75,13 @@ export const useAppStore = create<AppState>((set) => ({
   toggleTheme: () =>
     set((state) => {
       const next = state.theme === "dark" ? "light" : "dark";
-      localStorage.setItem("dona_theme", next);
-      // Apply to <html>
-      document.documentElement.classList.toggle("dark", next === "dark");
-      document.documentElement.classList.toggle("light", next === "light");
+      applyTheme(next);
       return { theme: next };
+    }),
+  setTheme: (theme) =>
+    set(() => {
+      applyTheme(theme);
+      return { theme };
     }),
 }));
 

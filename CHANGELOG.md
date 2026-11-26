@@ -22,6 +22,8 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 - **Blank white window in development**: on machines where Windows resolves
   `localhost` to IPv6 only, the dev server and the WebView2 shell disagreed.
   Vite now binds `127.0.0.1` and the dev URL uses it explicitly.
+- **Light-mode banners**: warning, success and error boxes now use dark text on
+  a light tint instead of pale text on a dark tint.
 
 ### Fixed — data loss / reliability
 
@@ -49,6 +51,8 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **Theme selector** in Settings → General (Dark / Light), an app favicon and
+  visible keyboard focus rings for every control.
 - **Read-only local API** (Settings → Integrations): a token-protected JSON API
   on `127.0.0.1` (default port 8787) for dashboards and automation. Endpoints
   cover accounts, contacts, contact timelines, deals, tasks, reports and
