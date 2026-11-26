@@ -151,6 +151,15 @@ export default function CrmDrawer({
     }
   }, [open, accountId, refresh]);
 
+  // Another screen changed CRM data (for example a JSON import in Settings).
+  useEffect(() => {
+    const reload = () => {
+      void refresh();
+    };
+    window.addEventListener("dona:crm-changed", reload);
+    return () => window.removeEventListener("dona:crm-changed", reload);
+  }, [refresh]);
+
   // Escape collapses the full-screen CRM.
   useEffect(() => {
     if (!open || !expanded) return;

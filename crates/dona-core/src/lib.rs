@@ -2,6 +2,7 @@
 pub mod accounts;
 pub mod crm;
 pub mod crm_ext;
+pub mod crm_portable;
 pub mod db;
 pub mod error;
 pub mod models;

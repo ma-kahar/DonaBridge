@@ -70,7 +70,7 @@ Open the CRM drawer from the taskbar — or click the **Expand (`⛶`)** button 
     with AES-256-GCM **before** they reach the folder; a recovery code is shown
     once configured and is the password used to restore them on another PC.
   - **Full manual encrypted backup**: a password-protected `.donabk` file containing every account, CRM record, template and setting. AES-256-GCM with an Argon2id-derived key; portable between PCs (scan the WhatsApp QR code again on the new machine).
-  - Export and import your CRM workspace data (projects, tasks, quick replies, pinned contacts, theme) as a **JSON** file.
+  - **CRM data portability**: export the whole CRM (contacts, tags, notes, reminders, templates, pipelines, deals, custom fields, tasks) as one JSON file and import it on another PC — a safety snapshot is taken first. Deals and tasks also export per account as CSV for Excel or Sheets.
   - **Storage & health** panel shows the database size, WebView2 profile size, account/group counts and opens the data or log folder for support.
 
 ### 3. Draft-Only AI Copilot (Optional)

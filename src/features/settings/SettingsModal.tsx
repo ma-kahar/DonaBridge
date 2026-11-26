@@ -44,6 +44,11 @@ import {
   backupRecoveryCode,
   clearDndSchedule,
   createAutoBackupNow,
+  crmExportDealsCsv,
+  crmExportJson,
+  crmExportTasksCsv,
+  crmHasData,
+  crmImportJson,
   createSnapshot,
   deleteAccountGroup,
   exportDiagnostics,
@@ -97,6 +102,7 @@ const PROVIDER_DEFAULTS: Record<string, { model: string; base_url: string }> = {
 export default function SettingsModal({ open, onClose, onEditAccount }: SettingsModalProps) {
   const { t, i18n } = useTranslation();
   const accounts = useAppStore((s) => s.accounts);
+  const activeAccountId = useAppStore((s) => s.activeAccountId);
   const [tab, setTab] = useState<SettingsTab>("general");
 
   const [hasPin, setHasPin] = useState(false);
@@ -114,6 +120,9 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
   const [showRecoveryCode, setShowRecoveryCode] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
   const [recoveryInput, setRecoveryInput] = useState("");
+  const [crmBusy, setCrmBusy] = useState(false);
+  const [crmStatus, setCrmStatus] = useState<string | null>(null);
+  const [crmAccountId, setCrmAccountId] = useState("");
 
   const [groups, setGroups] = useState<AccountGroupDto[]>([]);
   const [newGroupName, setNewGroupName] = useState("");
@@ -162,6 +171,13 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
       .then(setAutoBackup)
       .catch((err) => setBackupStatus(String(err)));
   }, [open, tab]);
+
+  useEffect(() => {
+    if (crmAccountId) return;
+    const preferred =
+      accounts.find((account) => account.id === activeAccountId) ?? accounts[0];
+    if (preferred) setCrmAccountId(preferred.id);
+  }, [accounts, activeAccountId, crmAccountId]);
 
   if (!open) return null;
 
@@ -477,6 +493,116 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
       setAutoBackup(await autoBackupSettings());
     } catch (err) {
       setBackupStatus(String(err));
+    }
+  }
+
+  function crmStamp() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function safeName(value: string) {
+    return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-");
+  }
+
+  async function handleExportCrmJson() {
+    const path = await saveDialog({
+      title: "Export CRM data",
+      defaultPath: `dona-crm-${crmStamp()}.json`,
+      filters: [{ name: "Dona CRM JSON", extensions: ["json"] }],
+    });
+    if (!path) return;
+    setCrmBusy(true);
+    setCrmStatus(null);
+    try {
+      const result = await crmExportJson(path);
+      setCrmStatus(
+        `Exported ${result.rows} rows (${formatBytes(result.bytes)}) to ${result.path}`
+      );
+      revealPath(result.path);
+    } catch (err) {
+      setCrmStatus(String(err));
+    } finally {
+      setCrmBusy(false);
+    }
+  }
+
+  async function handleImportCrmJson() {
+    const picked = await openDialog({
+      multiple: false,
+      title: "Import CRM data",
+      filters: [{ name: "Dona CRM JSON", extensions: ["json"] }],
+    });
+    if (typeof picked !== "string") return;
+    const hasData = await crmHasData().catch(() => true);
+    const confirmed = window.confirm(
+      hasData
+        ? "Importing replaces ALL current CRM data (contacts, deals, tasks, notes, tags, templates and pipelines). Accounts, WhatsApp sessions and settings are not touched. A safety snapshot is saved first. Continue?"
+        : "Import this CRM data? A safety snapshot is saved first. Continue?"
+    );
+    if (!confirmed) return;
+    setCrmBusy(true);
+    setCrmStatus(null);
+    try {
+      const summary = await crmImportJson(picked);
+      setCrmStatus(
+        `Imported ${summary.contacts} contacts, ${summary.deals} deals, ${summary.tasks} tasks and ${summary.notes} notes (${summary.total_rows} rows). A safety snapshot was saved.`
+      );
+      window.dispatchEvent(new Event("dona:crm-changed"));
+      setHealth(await appHealth());
+    } catch (err) {
+      setCrmStatus(String(err));
+    } finally {
+      setCrmBusy(false);
+    }
+  }
+
+  async function handleExportDealsCsv() {
+    if (!crmAccountId) {
+      setCrmStatus("Choose an account first.");
+      return;
+    }
+    const account = accounts.find((item) => item.id === crmAccountId);
+    const path = await saveDialog({
+      title: "Export deals",
+      defaultPath: `deals-${safeName(account?.name ?? "account")}-${crmStamp()}.csv`,
+      filters: [{ name: "CSV", extensions: ["csv"] }],
+    });
+    if (!path) return;
+    setCrmBusy(true);
+    setCrmStatus(null);
+    try {
+      const result = await crmExportDealsCsv(crmAccountId, path);
+      setCrmStatus(`Exported ${result.rows} deal(s) to ${result.path}`);
+      revealPath(result.path);
+    } catch (err) {
+      setCrmStatus(String(err));
+    } finally {
+      setCrmBusy(false);
+    }
+  }
+
+  async function handleExportTasksCsv() {
+    if (!crmAccountId) {
+      setCrmStatus("Choose an account first.");
+      return;
+    }
+    const account = accounts.find((item) => item.id === crmAccountId);
+    const path = await saveDialog({
+      title: "Export tasks",
+      defaultPath: `tasks-${safeName(account?.name ?? "account")}-${crmStamp()}.csv`,
+      filters: [{ name: "CSV", extensions: ["csv"] }],
+    });
+    if (!path) return;
+    setCrmBusy(true);
+    setCrmStatus(null);
+    try {
+      const result = await crmExportTasksCsv(crmAccountId, path);
+      setCrmStatus(`Exported ${result.rows} task(s) to ${result.path}`);
+      revealPath(result.path);
+    } catch (err) {
+      setCrmStatus(String(err));
+    } finally {
+      setCrmBusy(false);
     }
   }
 
@@ -1063,6 +1189,79 @@ export default function SettingsModal({ open, onClose, onEditAccount }: Settings
                     </>
                   ) : (
                     <p className="text-[11px] text-gray-500">{t("common.loading")}</p>
+                  )}
+                </div>
+
+                {/* CRM data portability */}
+                <div className="rounded-xl bg-dona-dark border border-dona-border p-4 space-y-3">
+                  <p className="text-xs font-semibold text-white inline-flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    CRM data
+                  </p>
+                  <p className="text-[11px] text-gray-400">
+                    Export every contact, deal, task, note, tag, template and pipeline as one JSON
+                    file, or move it to another Dona Bridge PC. Importing replaces CRM data only —
+                    accounts, WhatsApp sessions and settings stay as they are.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={crmBusy}
+                      onClick={() => void handleExportCrmJson()}
+                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-[11px] font-medium text-white inline-flex items-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Export CRM (JSON)
+                    </button>
+                    <button
+                      type="button"
+                      disabled={crmBusy}
+                      onClick={() => void handleImportCrmJson()}
+                      className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200 inline-flex items-center gap-1.5"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Import CRM (JSON)
+                    </button>
+                  </div>
+
+                  <div className="border-t border-dona-border/60 pt-2 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] text-gray-400">Spreadsheet export for</span>
+                      <select
+                        value={crmAccountId}
+                        onChange={(event) => setCrmAccountId(event.target.value)}
+                        className="rounded-lg bg-dona-panel border border-dona-border px-2 py-1 text-[11px] text-gray-200"
+                      >
+                        {accounts.length === 0 && <option value="">No accounts</option>}
+                        {accounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={crmBusy || !crmAccountId}
+                        onClick={() => void handleExportDealsCsv()}
+                        className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200"
+                      >
+                        Export deals CSV
+                      </button>
+                      <button
+                        type="button"
+                        disabled={crmBusy || !crmAccountId}
+                        onClick={() => void handleExportTasksCsv()}
+                        className="px-3 py-1.5 rounded-lg border border-dona-border hover:bg-white/5 disabled:opacity-50 text-[11px] text-gray-200"
+                      >
+                        Export tasks CSV
+                      </button>
+                    </div>
+                  </div>
+
+                  {crmStatus && (
+                    <p className="text-[11px] text-emerald-400 break-all">{crmStatus}</p>
                   )}
                 </div>
 

@@ -519,16 +519,46 @@
           "markdownDescription": "Enables the crm_export_csv command without any pre-configured scope."
         },
         {
+          "description": "Enables the crm_export_deals_csv command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-export-deals-csv",
+          "markdownDescription": "Enables the crm_export_deals_csv command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_export_json command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-export-json",
+          "markdownDescription": "Enables the crm_export_json command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_export_tasks_csv command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-export-tasks-csv",
+          "markdownDescription": "Enables the crm_export_tasks_csv command without any pre-configured scope."
+        },
+        {
           "description": "Enables the crm_get_contact_fields command without any pre-configured scope.",
           "type": "string",
           "const": "allow-crm-get-contact-fields",
           "markdownDescription": "Enables the crm_get_contact_fields command without any pre-configured scope."
         },
         {
+          "description": "Enables the crm_has_data command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-has-data",
+          "markdownDescription": "Enables the crm_has_data command without any pre-configured scope."
+        },
+        {
           "description": "Enables the crm_import_csv command without any pre-configured scope.",
           "type": "string",
           "const": "allow-crm-import-csv",
           "markdownDescription": "Enables the crm_import_csv command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the crm_import_json command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-crm-import-json",
+          "markdownDescription": "Enables the crm_import_json command without any pre-configured scope."
         },
         {
           "description": "Enables the crm_insert_draft command without any pre-configured scope.",
@@ -1065,16 +1095,46 @@
           "markdownDescription": "Denies the crm_export_csv command without any pre-configured scope."
         },
         {
+          "description": "Denies the crm_export_deals_csv command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-export-deals-csv",
+          "markdownDescription": "Denies the crm_export_deals_csv command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_export_json command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-export-json",
+          "markdownDescription": "Denies the crm_export_json command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_export_tasks_csv command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-export-tasks-csv",
+          "markdownDescription": "Denies the crm_export_tasks_csv command without any pre-configured scope."
+        },
+        {
           "description": "Denies the crm_get_contact_fields command without any pre-configured scope.",
           "type": "string",
           "const": "deny-crm-get-contact-fields",
           "markdownDescription": "Denies the crm_get_contact_fields command without any pre-configured scope."
         },
         {
+          "description": "Denies the crm_has_data command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-has-data",
+          "markdownDescription": "Denies the crm_has_data command without any pre-configured scope."
+        },
+        {
           "description": "Denies the crm_import_csv command without any pre-configured scope.",
           "type": "string",
           "const": "deny-crm-import-csv",
           "markdownDescription": "Denies the crm_import_csv command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the crm_import_json command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-crm-import-json",
+          "markdownDescription": "Denies the crm_import_json command without any pre-configured scope."
         },
         {
           "description": "Denies the crm_insert_draft command without any pre-configured scope.",

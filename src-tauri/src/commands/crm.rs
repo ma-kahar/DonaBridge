@@ -4,13 +4,20 @@
 
 use chrono::{DateTime, Utc};
 use dona_core::{
-    crm as core_crm, crm_ext, db,
+    crm as core_crm, crm_ext, crm_portable, db,
     models::{Contact, Note, Reminder, Tag, Template},
 };
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
 use crate::webviews::manager;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CrmFileResult {
+    pub path: String,
+    pub bytes: u64,
+    pub rows: usize,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContactDto {
@@ -258,6 +265,101 @@ pub async fn crm_export_csv(account_id: String) -> Result<String, String> {
     let conn = db::get().lock();
     let contacts = core_crm::list_contacts(&conn, &account_id).map_err(|e| e.to_string())?;
     Ok(core_crm::export_contacts_csv(&contacts))
+}
+
+/// Export every CRM table (contacts, tags, notes, reminders, templates,
+/// pipelines, deals, custom fields, tasks, activities) as one JSON file.
+#[tauri::command]
+pub async fn crm_export_json(path: String) -> Result<CrmFileResult, String> {
+    tokio::task::spawn_blocking(move || {
+        let (text, rows) = {
+            let conn = db::get().lock();
+            let bundle = crm_portable::export_bundle(&conn).map_err(|e| e.to_string())?;
+            let text = crm_portable::to_pretty_json(&bundle).map_err(|e| e.to_string())?;
+            let rows = bundle.tables.values().map(Vec::len).sum::<usize>();
+            (text, rows)
+        };
+        std::fs::write(&path, text.as_bytes())
+            .map_err(|e| format!("Could not write the export: {e}"))?;
+        Ok(CrmFileResult {
+            path,
+            bytes: text.len() as u64,
+            rows,
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Replace all CRM data with a JSON bundle from this or another PC. A safety
+/// snapshot is written first; accounts, sessions and settings are untouched.
+#[tauri::command]
+pub async fn crm_import_json(path: String) -> Result<crm_portable::ImportSummary, String> {
+    tokio::task::spawn_blocking(move || {
+        dona_core::db::auto_snapshot()
+            .map_err(|e| format!("Could not create a safety snapshot: {e}"))?
+            .ok_or_else(|| "Could not create a safety snapshot before importing".to_string())?;
+        let text =
+            std::fs::read_to_string(&path).map_err(|e| format!("Could not read the file: {e}"))?;
+        let bundle = crm_portable::from_json(&text).map_err(|e| e.to_string())?;
+        let conn = db::get().lock();
+        crm_portable::import_bundle(&conn, &bundle).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// True when there is existing CRM data (the UI warns before a replace-import).
+#[tauri::command]
+pub async fn crm_has_data() -> Result<bool, String> {
+    let conn = db::get().lock();
+    crm_portable::has_crm_data(&conn).map_err(|e| e.to_string())
+}
+
+/// Export one account's deals as CSV, ready for Excel or Google Sheets.
+#[tauri::command]
+pub async fn crm_export_deals_csv(
+    account_id: String,
+    path: String,
+) -> Result<CrmFileResult, String> {
+    tokio::task::spawn_blocking(move || {
+        let (csv, rows) = {
+            let conn = db::get().lock();
+            crm_portable::export_deals_csv(&conn, &account_id).map_err(|e| e.to_string())?
+        };
+        std::fs::write(&path, csv.as_bytes())
+            .map_err(|e| format!("Could not write the CSV: {e}"))?;
+        Ok(CrmFileResult {
+            path,
+            bytes: csv.len() as u64,
+            rows,
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Export one account's tasks as CSV.
+#[tauri::command]
+pub async fn crm_export_tasks_csv(
+    account_id: String,
+    path: String,
+) -> Result<CrmFileResult, String> {
+    tokio::task::spawn_blocking(move || {
+        let (csv, rows) = {
+            let conn = db::get().lock();
+            crm_portable::export_tasks_csv(&conn, &account_id).map_err(|e| e.to_string())?
+        };
+        std::fs::write(&path, csv.as_bytes())
+            .map_err(|e| format!("Could not write the CSV: {e}"))?;
+        Ok(CrmFileResult {
+            path,
+            bytes: csv.len() as u64,
+            rows,
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Insert text as a draft into the active WhatsApp chat composer.

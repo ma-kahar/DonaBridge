@@ -194,6 +194,54 @@ export async function crmExportCsv(accountId: string): Promise<string> {
   return invoke<string>("crm_export_csv", { accountId });
 }
 
+export interface CrmFileResult {
+  path: string;
+  bytes: number;
+  rows: number;
+}
+
+export interface CrmImportSummary {
+  contacts: number;
+  deals: number;
+  tasks: number;
+  notes: number;
+  tags: number;
+  templates: number;
+  pipelines: number;
+  total_rows: number;
+}
+
+export async function crmExportJson(path: string): Promise<CrmFileResult> {
+  if (!isTauri()) throw new Error("Export is only available in the desktop app");
+  return invoke<CrmFileResult>("crm_export_json", { path });
+}
+
+export async function crmImportJson(path: string): Promise<CrmImportSummary> {
+  if (!isTauri()) throw new Error("Import is only available in the desktop app");
+  return invoke<CrmImportSummary>("crm_import_json", { path });
+}
+
+export async function crmHasData(): Promise<boolean> {
+  if (!isTauri()) return false;
+  return invoke<boolean>("crm_has_data");
+}
+
+export async function crmExportDealsCsv(
+  accountId: string,
+  path: string
+): Promise<CrmFileResult> {
+  if (!isTauri()) throw new Error("Export is only available in the desktop app");
+  return invoke<CrmFileResult>("crm_export_deals_csv", { accountId, path });
+}
+
+export async function crmExportTasksCsv(
+  accountId: string,
+  path: string
+): Promise<CrmFileResult> {
+  if (!isTauri()) throw new Error("Export is only available in the desktop app");
+  return invoke<CrmFileResult>("crm_export_tasks_csv", { accountId, path });
+}
+
 export async function crmInsertDraft(accountId: string, text: string): Promise<void> {
   if (!isTauri()) return;
   return invoke<void>("crm_insert_draft", { accountId, text });

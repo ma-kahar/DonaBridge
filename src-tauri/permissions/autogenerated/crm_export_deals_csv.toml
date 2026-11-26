@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-export-deals-csv"
+description = "Enables the crm_export_deals_csv command without any pre-configured scope."
+commands.allow = ["crm_export_deals_csv"]
+
+[[permission]]
+identifier = "deny-crm-export-deals-csv"
+description = "Denies the crm_export_deals_csv command without any pre-configured scope."
+commands.deny = ["crm_export_deals_csv"]

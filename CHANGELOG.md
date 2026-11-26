@@ -46,6 +46,12 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ### Added
 
+- **CRM data portability** (Settings → Data & Storage): export the entire CRM —
+  contacts, tags, notes, reminders, quick-reply templates, pipelines, deals,
+  custom fields and tasks — as one readable JSON file, and import it on another
+  PC (accounts are matched by name when their ids differ). Import replaces CRM
+  data only, runs in one transaction and writes a safety snapshot first.
+  Deals and tasks can also be exported per account as CSV for Excel/Sheets.
 - **Native-style green title bar**: the window is now frameless with an
   integrated WhatsApp-green caption (logo, active account, window controls).
   Drag anywhere on the bar to move the window and double-click to

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-export-tasks-csv"
+description = "Enables the crm_export_tasks_csv command without any pre-configured scope."
+commands.allow = ["crm_export_tasks_csv"]
+
+[[permission]]
+identifier = "deny-crm-export-tasks-csv"
+description = "Denies the crm_export_tasks_csv command without any pre-configured scope."
+commands.deny = ["crm_export_tasks_csv"]

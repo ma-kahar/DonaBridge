@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-crm-has-data"
+description = "Enables the crm_has_data command without any pre-configured scope."
+commands.allow = ["crm_has_data"]
+
+[[permission]]
+identifier = "deny-crm-has-data"
+description = "Denies the crm_has_data command without any pre-configured scope."
+commands.deny = ["crm_has_data"]
