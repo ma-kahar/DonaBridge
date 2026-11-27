@@ -14,6 +14,7 @@ pub mod downloads;
 pub mod local_api;
 pub mod lock;
 pub mod mcp;
+pub mod mic;
 pub mod paths;
 pub mod secrets;
 pub mod tray;
@@ -201,6 +202,9 @@ pub fn run() {
             commands::local_api::save_api_settings,
             commands::local_api::api_token,
             commands::local_api::rotate_api_token,
+            mic::mic_permission,
+            mic::mic_start,
+            mic::mic_stop,
         ])
         // ── Setup ──────────────────────────────────────────────────────────
         .setup(|app| {

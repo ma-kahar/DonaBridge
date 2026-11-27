@@ -4,6 +4,28 @@ All notable changes to Dona Bridge follow [Keep a Changelog](https://keepachange
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-27
+
+### Added
+
+- **Native microphone compatibility layer.** On some Intel/Huawei laptops the
+  Windows WASAPI shared-mode engine cannot open the built-in microphone
+  (`IAudioClient::GetMixFormat` returns `0x8000FFFF`), so Chromium/WebView2
+  cannot record even though Firefox and the hardware work. Dona Bridge now
+  captures the microphone through PortAudio’s **WDM-KS (kernel streaming)**
+  backend and feeds it to WhatsApp Web as a normal `MediaStream`, so voice
+  messages record and send exactly like in a browser. If the bridge is not
+  available, the normal WebView2 path is used automatically.
+- **Microphone permission prompt** on first use: Allow / Block. The answer is
+  remembered for the current session.
+- **PortAudio runtime** bundled with the installer (`src-tauri/resources/portaudio`,
+  MIT licence included).
+
+### Fixed
+
+- Voice notes now work on machines where Chrome/WebView2 reports
+  “Microphone not found / unavailable” but Firefox can record.
+
 ## [0.2.3] - 2026-11-26
 
 ### Fixed

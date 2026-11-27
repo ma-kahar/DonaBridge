@@ -54,6 +54,170 @@ pub fn build_init_script(account_id: &str) -> String {
         window.Notification = DonaNotification;
     }}
 
+    // ── Microphone bridge (WDM-KS fallback) ───────────────────────────
+    // Windows exposes this Huawei/Intel microphone only through kernel
+    // streaming; WASAPI (used by WebView2) returns 0x8000FFFF. Capture it
+    // natively and expose the PCM as a normal MediaStream to WhatsApp.
+    (function () {{
+        const md = navigator.mediaDevices;
+        if (!md || typeof md.getUserMedia !== 'function') return;
+        if (typeof MediaStreamTrackGenerator !== 'function' ||
+            typeof AudioData !== 'function') return;
+
+        const original = md.getUserMedia.bind(md);
+        const invoke = (cmd, args) => window.__TAURI_INTERNALS__.invoke(cmd, args);
+        let permission = null;
+        let captureRefs = 0;
+        let unlisten = null;
+        const sinks = new Set();
+
+        async function listenPcm(handler) {{
+            const handlerId = window.__TAURI_INTERNALS__.transformCallback(handler);
+            const eventId = await invoke('plugin:event|listen', {{
+                event: 'mic://pcm',
+                target: {{ kind: 'Any' }},
+                handler: handlerId
+            }});
+            return () => {{
+                invoke('plugin:event|unlisten', {{ event: 'mic://pcm', eventId }}).catch(() => {{}});
+            }};
+        }}
+
+        async function begin() {{
+            if (captureRefs === 0) {{
+                unlisten = await listenPcm((event) => {{
+                    const b64 = event && event.payload;
+                    if (typeof b64 !== 'string' || !b64) return;
+                    let bin;
+                    try {{ bin = atob(b64); }} catch (e) {{ return; }}
+                    const bytes = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                    for (const sink of sinks) sink.push(bytes);
+                }});
+                try {{
+                    await invoke('mic_start');
+                }} catch (e) {{
+                    if (unlisten) {{ unlisten(); unlisten = null; }}
+                    throw e;
+                }}
+            }}
+            captureRefs++;
+        }}
+
+        async function end() {{
+            captureRefs = Math.max(0, captureRefs - 1);
+            if (captureRefs === 0) {{
+                if (unlisten) {{ unlisten(); unlisten = null; }}
+                try {{ await invoke('mic_stop'); }} catch (e) {{}}
+            }}
+        }}
+
+        md.getUserMedia = async function (constraints) {{
+            if (!constraints || !constraints.audio) return original(constraints);
+            // Video calls keep the native camera path; voice notes get the bridge.
+            if (constraints.video) return original(constraints);
+            try {{
+                if (permission !== 'allow') {{
+                    const ok = await invoke('mic_permission');
+                    if (!ok) throw new DOMException('Permission denied', 'NotAllowedError');
+                    permission = 'allow';
+                }}
+                await begin();
+            }} catch (e) {{
+                // Bridge unavailable (or permission denied): use the native path.
+                if (e && e.name === 'NotAllowedError') throw e;
+                return original(constraints);
+            }}
+
+            const generator = new MediaStreamTrackGenerator({{ kind: 'audio' }});
+            const writer = generator.writable.getWriter();
+            const queue = [];
+            let writing = false;
+            let timestamp = 0;
+
+            async function pump() {{
+                if (writing) return;
+                writing = true;
+                try {{
+                    while (queue.length) {{
+                        const bytes = queue.shift();
+                        const frames = Math.floor(bytes.length / 2);
+                        if (!frames) continue;
+                        try {{
+                            const data = new AudioData({{
+                                format: 's16',
+                                sampleRate: 48000,
+                                numberOfFrames: frames,
+                                numberOfChannels: 1,
+                                timestamp,
+                                data: bytes.buffer
+                            }});
+                            timestamp += Math.round((frames * 1000000) / 48000);
+                            await writer.write(data);
+                        }} catch (e) {{}}
+                    }}
+                }} finally {{
+                    writing = false;
+                }}
+            }}
+
+            const sink = {{
+                push(bytes) {{
+                    queue.push(bytes);
+                    if (queue.length > 20) queue.shift();
+                    void pump();
+                }}
+            }};
+            sinks.add(sink);
+
+            const stream = new MediaStream([generator]);
+            const track = stream.getAudioTracks()[0];
+            try {{
+                Object.defineProperty(track, 'getSettings', {{
+                    value: () => ({{
+                        deviceId: 'default',
+                        groupId: 'dona',
+                        sampleRate: 48000,
+                        channelCount: 1,
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }})
+                }});
+            }} catch (e) {{}}
+
+            let cleaned = false;
+            let limit = null;
+            const cleanup = () => {{
+                if (cleaned) return;
+                cleaned = true;
+                if (limit) clearTimeout(limit);
+                sinks.delete(sink);
+                try {{ writer.close(); }} catch (e) {{}}
+                void end();
+            }};
+            limit = setTimeout(cleanup, 600000);
+            track.addEventListener('ended', cleanup, {{ once: true }});
+            const watchdog = setInterval(() => {{
+                if (track.readyState === 'ended') {{
+                    clearInterval(watchdog);
+                    cleanup();
+                }}
+            }}, 1000);
+            track.addEventListener('ended', () => clearInterval(watchdog), {{ once: true }});
+
+            return stream;
+        }};
+
+        const release = () => {{
+            captureRefs = 0;
+            if (unlisten) {{ unlisten(); unlisten = null; }}
+            invoke('mic_stop').catch(() => {{}});
+        }};
+        window.addEventListener('pagehide', release);
+        window.addEventListener('beforeunload', release);
+    }})();
+
     // ── Shortcut key forwarder ─────────────────────────────────────────────
     document.addEventListener('keydown', (e) => {{
         if (!e.ctrlKey) return;

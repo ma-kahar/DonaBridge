@@ -8,12 +8,16 @@
   },
   "local": false,
   "permissions": [
+    "core:event:default",
     "allow-wa-notify",
     "allow-wa-unread",
     "allow-wa-avatar",
     "allow-wa-chat-context",
     "allow-wa-shortcut",
     "allow-wa-auto-read",
-    "allow-wa-session-state"
+    "allow-wa-session-state",
+    "allow-mic-permission",
+    "allow-mic-start",
+    "allow-mic-stop"
   ]
 }

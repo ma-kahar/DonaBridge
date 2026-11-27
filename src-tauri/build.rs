@@ -116,6 +116,9 @@ fn main() {
             "save_api_settings",
             "api_token",
             "rotate_api_token",
+            "mic_permission",
+            "mic_start",
+            "mic_stop",
         ]),
     ))
     .expect("failed to run tauri-build");

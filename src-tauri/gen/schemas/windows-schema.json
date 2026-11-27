@@ -813,6 +813,24 @@
           "markdownDescription": "Enables the mcp_stop command without any pre-configured scope."
         },
         {
+          "description": "Enables the mic_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-mic-permission",
+          "markdownDescription": "Enables the mic_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the mic_start command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-mic-start",
+          "markdownDescription": "Enables the mic_start command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the mic_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-mic-stop",
+          "markdownDescription": "Enables the mic_stop command without any pre-configured scope."
+        },
+        {
           "description": "Enables the prewarm_accounts command without any pre-configured scope.",
           "type": "string",
           "const": "allow-prewarm-accounts",
@@ -1501,6 +1519,24 @@
           "type": "string",
           "const": "deny-mcp-stop",
           "markdownDescription": "Denies the mcp_stop command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the mic_permission command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-mic-permission",
+          "markdownDescription": "Denies the mic_permission command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the mic_start command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-mic-start",
+          "markdownDescription": "Denies the mic_start command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the mic_stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-mic-stop",
+          "markdownDescription": "Denies the mic_stop command without any pre-configured scope."
         },
         {
           "description": "Denies the prewarm_accounts command without any pre-configured scope.",

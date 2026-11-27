@@ -19,7 +19,7 @@
 ## 📥 Download & Install (Windows)
 
 1. Go to the [**Latest Release**](https://github.com/ma-kahar/DonaBridge/releases/latest) page.
-2. Download **`Dona.Bridge_0.2.3_x64-setup.exe`**.
+2. Download **`Dona.Bridge_0.3.0_x64-setup.exe`**.
 3. Run the installer and launch **Dona Bridge**.
    - **Safe Upgrades:** Installing a newer version over an older one **keeps all your existing accounts, sessions, and CRM data intact**.
    - **Clean Uninstall:** Uninstalling asks whether you also want to remove local app data.
@@ -61,6 +61,7 @@ Want your own privacy-safe screenshots? See
 - **Application taskbar:** a Windows-style WhatsApp-coloured bar at the bottom of the window with the account switcher, CRM, search, downloads, add account, lock and settings.
 - **Downloads:** PDFs, images and documents downloaded in WhatsApp are saved to `Downloads\Dona Bridge`; the taskbar Downloads button lists them with open, show in folder, delete, and an unread badge.
 - **Voice messages:** the microphone is granted to WhatsApp Web up front, so recording a voice note works like it does in the browser (Windows must allow desktop apps to use the microphone).
+- **Native microphone fallback:** if a laptop's Windows WASAPI driver cannot open the built-in mic (some Intel/Huawei audio stacks), Dona Bridge captures it through WDM-KS kernel streaming and presents it to WhatsApp as a normal microphone. The first request shows an **Allow / Block** prompt.
 - **Drag & drop:** drop a file onto a chat to attach it, exactly like in WhatsApp Web.
 - **Order & groups:** Drag accounts in the dock to reorder them. Create colour-coded groups in **Settings → Accounts** (Shop, Clients, Personal…) and assign an account to a group when you add or edit it.
 - **Command palette (`Ctrl+K`):** Jump to an account, contact, quick reply, project or action from one search box.
@@ -119,6 +120,28 @@ Open the CRM drawer from the taskbar — or click the **Expand (`⛶`)** button 
 - Available in **English**, **বাংলা (Bengali)**, and **Français (French)**.
 
 ---
+
+## Microphone compatibility
+
+Windows has several audio paths. Chrome/WebView2 only use **WASAPI**; Firefox
+can fall back to the older Windows audio API. On some Intel/Huawei laptops the
+WASAPI capture endpoint is broken (`GetMixFormat` returns `0x8000FFFF`), so
+WhatsApp Web shows **“Microphone not found”** or **“Microphone unavailable”**
+even though the microphone works in Firefox.
+
+Dona Bridge handles that case itself:
+
+1. The first time WhatsApp asks for a microphone, Dona Bridge shows an
+   **Allow / Block** prompt.
+2. If allowed, it captures the default microphone through **WDM-KS (kernel
+   streaming)** using the bundled PortAudio runtime.
+3. The PCM is exposed to WhatsApp Web as a standard `MediaStream`, so
+   `MediaRecorder` creates a normal voice message.
+4. If the fallback cannot start (for example no kernel-streaming device), the
+   normal WebView2 microphone path is used automatically.
+
+The PortAudio runtime is unmodified and is distributed under the MIT licence;
+its licence text ships in `src-tauri/resources/portaudio/LICENSE.txt`.
 
 ## 🛡️ WhatsApp Policy & Safety Compliance
 

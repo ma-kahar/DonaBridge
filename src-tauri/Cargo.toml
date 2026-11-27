@@ -80,6 +80,8 @@ sysinfo = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
 anyhow = { workspace = true }
+base64 = { workspace = true }
+libloading = { workspace = true }
 
 # Backups (Phase 2)
 # age = { workspace = true }
